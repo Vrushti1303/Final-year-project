@@ -17,7 +17,7 @@ app.use('/api', documentRoutes);
 app.use('/api', checklistRoutes);
 app.use('/api', chatRoutes);
 
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, { family: 4 })
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
