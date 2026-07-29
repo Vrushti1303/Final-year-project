@@ -17,13 +17,15 @@ app.use('/api', documentRoutes);
 app.use('/api', checklistRoutes);
 app.use('/api', chatRoutes);
 
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
   })
   .catch((err) => {
-    console.error('Failed to connect to MongoDB', err);
+    console.warn('MongoDB connection failed (running without DB connection):', err.message);
   });
+
