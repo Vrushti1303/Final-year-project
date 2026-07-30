@@ -1,0 +1,334 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import 'login_screen.dart';
+import 'otp_screen.dart';
+
+class SignupScreen extends ConsumerStatefulWidget {
+  const SignupScreen({super.key});
+
+  @override
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _identifierController = TextEditingController();
+  bool _isEmailMode = true;
+  
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _identifierController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      if (!_isEmailMode) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mobile OTP coming soon. Please use email.')));
+        return;
+      }
+      
+      final String name = _nameController.text.trim();
+      final String identifier = _identifierController.text.trim();
+      
+      final success = await ref.read(authProvider.notifier).sendOtp(
+        email: identifier,
+        type: 'signup',
+      );
+      
+      if (success && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpScreen(email: identifier, type: 'signup', fullName: name),
+          ),
+        );
+      } else if (mounted) {
+        final error = ref.read(authProvider).errorMessage;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? 'Signup failed'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final authState = ref.watch(authProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 48.0, vertical: 20.0),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Floating Authentication Card
+                      Container(
+                        padding: const EdgeInsets.all(40.0),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Icon(
+                              Icons.person_add_alt_1_rounded,
+                              size: 48,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(height: 32),
+                            Text(
+                              'Create Account',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.displayLarge?.copyWith(fontSize: 34),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Join to secure your real estate journey',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
+                            ),
+                            const SizedBox(height: 36),
+                            
+                            // Segmented Control
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF171218), // Darker background
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => setState(() {
+                                        _isEmailMode = true;
+                                        _identifierController.clear();
+                                      }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: _isEmailMode ? colorScheme.primary : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'Email',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            color: _isEmailMode ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => setState(() {
+                                        _isEmailMode = false;
+                                        _identifierController.clear();
+                                      }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: !_isEmailMode ? colorScheme.primary : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'Mobile',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            color: !_isEmailMode ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 36),
+                            
+                            Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  TextFormField(
+                                    controller: _nameController,
+                                    keyboardType: TextInputType.name,
+                                    textCapitalization: TextCapitalization.words,
+                                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                                    decoration: InputDecoration(
+                                      labelText: 'Full Name',
+                                      hintText: 'e.g. John Doe',
+                                      prefixIcon: Icon(
+                                        Icons.person_outline,
+                                        color: colorScheme.secondary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Required field';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 22),
+                                  TextFormField(
+                                    controller: _identifierController,
+                                    keyboardType: _isEmailMode ? TextInputType.emailAddress : TextInputType.phone,
+                                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                                    decoration: InputDecoration(
+                                      labelText: _isEmailMode ? 'Email Address' : 'Mobile Number',
+                                      hintText: _isEmailMode ? 'name@example.com' : 'e.g. 9876543210',
+                                      prefixIcon: Icon(
+                                        _isEmailMode ? Icons.email_outlined : Icons.phone_outlined,
+                                        color: colorScheme.secondary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Required field';
+                                      }
+                                      if (_isEmailMode) {
+                                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+                                        if (!emailRegex.hasMatch(value.trim())) {
+                                          return 'Invalid email address';
+                                        }
+                                      } else {
+                                        final cleanPhone = value.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+                                        final phoneRegex = RegExp(r'^\+?[0-9]{10,15}$');
+                                        if (!phoneRegex.hasMatch(cleanPhone)) {
+                                          return 'Invalid mobile number';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 32),
+                                  ElevatedButton(
+                                    onPressed: authState.status == AuthStatus.loading ? null : _submit,
+                                    child: authState.status == AuthStatus.loading
+                                        ? const SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : const Text('Create Account'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 28),
+                      
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Already have an account? ',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    return FadeTransition(opacity: animation, child: child);
+                                  },
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Login',
+                              style: TextStyle(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
