@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -10,27 +11,34 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages = [];
+  final List<Map<String, dynamic>> _messages = [];
   bool _isTyping = false;
 
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
+  Future<void> _sendMessage({String? textOverride}) async {
+    final text = textOverride ?? _controller.text.trim();
     if (text.isEmpty) return;
 
     setState(() {
       _messages.add({'role': 'user', 'text': text});
       _isTyping = true;
-      _controller.clear();
+      if (textOverride == null) {
+        _controller.clear();
+      }
     });
 
     try {
-      final reply = await ApiService.chat(text);
+      final history = _messages.map((m) => {'role': m['role'], 'text': m['text']}).toList();
+      final response = await ApiService.chat(history);
       setState(() {
-        _messages.add({'role': 'ai', 'text': reply});
+        _messages.add({
+          'role': 'ai',
+          'text': response['reply'] ?? 'Empty response',
+          'suggestions': response['suggestions']
+        });
       });
     } catch (e) {
       setState(() {
-        _messages.add({'role': 'error', 'text': 'Failed to get response.'});
+        _messages.add({'role': 'error', 'text': 'Error: $e'});
       });
     } finally {
       setState(() {
@@ -54,20 +62,47 @@ class _ChatScreenState extends State<ChatScreen> {
                 final isUser = msg['role'] == 'user';
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isUser ? Colors.blueAccent : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(16).copyWith(
-                        bottomRight: isUser ? const Radius.circular(0) : null,
-                        bottomLeft: !isUser ? const Radius.circular(0) : null,
+                  child: Column(
+                    crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8, top: 4),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isUser ? Colors.blueAccent : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(16).copyWith(
+                            bottomRight: isUser ? const Radius.circular(0) : null,
+                            bottomLeft: !isUser ? const Radius.circular(0) : null,
+                          ),
+                        ),
+                        child: MarkdownBody(
+                          data: msg['text']!,
+                          styleSheet: MarkdownStyleSheet(
+                            p: TextStyle(color: isUser ? Colors.white : Colors.black87),
+                            h3: TextStyle(color: isUser ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+                            listBullet: TextStyle(color: isUser ? Colors.white : Colors.black87),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      msg['text']!,
-                      style: TextStyle(color: isUser ? Colors.white : Colors.black87),
-                    ),
+                      if (!isUser && msg['suggestions'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0,
+                            children: (msg['suggestions'] as List).map((suggestion) => ActionChip(
+                              label: Text(suggestion),
+                              backgroundColor: Colors.blue.shade50,
+                              labelStyle: TextStyle(color: Colors.blue.shade900),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(color: Colors.blue.shade200),
+                              ),
+                              onPressed: () => _sendMessage(textOverride: suggestion),
+                            )).toList(),
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },

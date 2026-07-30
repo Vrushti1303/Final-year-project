@@ -1,0 +1,140 @@
+1. Constitutional Foundation
+1. Article 300A – Right to Property
+Property is a constitutional and human right.
+No person shall be deprived of their property except by authority of law.
+2. Central / Pan-India Laws
+Property Ownership & Transfer
+The Transfer of Property Act, 1882 (TPA)
+Governs sale, gift, mortgage, lease, exchange, and transfer of immovable property.
+The Registration Act, 1908
+Mandates registration of sale deeds, gift deeds, mortgages, and leases exceeding 11 months.
+The Indian Stamp Act, 1899
+Governs stamp duty on legal documents.
+The Specific Relief Act, 1963
+Allows enforcement of property sale agreements and specific performance.
+The Limitation Act, 1963
+Prescribes time limits for filing property-related lawsuits.
+Real Estate Regulation
+The Real Estate (Regulation and Development) Act, 2016 (RERA)
+Protects homebuyers and regulates builders and developers.
+National Building Code of India (NBC)
+Sets standards for structural safety, fire safety, accessibility, and construction practices.
+Contracts & Agreements
+The Indian Contract Act, 1872
+Governs agreements between buyers, sellers, builders, contractors, suppliers, and engineers.
+The Indian Easements Act, 1882
+Governs Leave & License Agreements and easement rights.
+Consumer Protection
+The Consumer Protection Act, 2019
+Allows buyers to file complaints against builders and developers for deficiency in service.
+Illegal Property Transactions
+The Prohibition of Benami Property Transactions Act, 1988
+Prohibits purchasing property in another person's name to conceal ownership.
+Land Acquisition
+The Right to Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013
+Governs government acquisition of private land.
+Builder Insolvency
+The Insolvency and Bankruptcy Code (IBC), 2016
+Gives homebuyers rights when developers become insolvent.
+Environmental Laws
+The Environment (Protection) Act, 1986
+Regulates environmental clearances for construction projects.
+The Forest (Conservation) Act, 1980
+Restricts construction on forest land.
+The Ancient Monuments and Archaeological Sites and Remains Act, 1958
+Regulates construction near protected monuments.
+Banking & Finance
+The SARFAESI Act, 2002
+Governs bank recovery of secured assets and mortgage enforcement.
+The Income Tax Act, 1961 (Property Provisions)
+Covers capital gains, TDS on property purchase, and tax benefits on housing loans.
+The Goods and Services Tax (GST) Act, 2017
+Governs GST applicable to under-construction properties and builder services.
+Succession & Family Property
+The Hindu Succession Act, 1956
+Governs inheritance among Hindus.
+The Indian Succession Act, 1925
+Governs wills and succession for applicable communities.
+The Partition Act, 1893
+Governs division of jointly owned property.
+Digital & Electronic Records
+The Information Technology Act, 2000
+Recognizes electronic records, digital signatures, and online agreements.
+The Bharatiya Sakshya Adhiniyam, 2023
+Governs admissibility of electronic records and digital evidence.
+3. Maharashtra State Laws
+RERA
+MahaRERA (Maharashtra RERA Rules)
+Requires project registration and mandates 70% of buyer funds be deposited in a project escrow account.
+Flats & Housing
+The Maharashtra Ownership Flats Act (MOFA), 1963
+Requires builders to form cooperative housing societies and convey title to buyers.
+The Maharashtra Apartment Ownership Act, 1970
+Governs ownership of apartments where applicable.
+The Maharashtra Cooperative Societies Act, 1960
+Governs cooperative housing societies, membership, management, and redevelopment.
+Rent
+The Maharashtra Rent Control Act, 1999
+Protects tenants and regulates rent and eviction.
+Planning & Development
+The Maharashtra Regional and Town Planning Act (MRTP), 1966
+Governs zoning, land use, building permissions, and development planning.
+Development Control and Promotion Regulations (DCPR)
+Specifies Floor Space Index (FSI), building height, setbacks, and construction norms.
+Local Municipal Corporation Rules (BMC/MCGM, etc.)
+Governs building permissions, Occupancy Certificates, Completion Certificates, fire safety approvals, and local building regulations.
+Stamp Duty
+The Maharashtra Stamp Act, 1958
+Specifies stamp duty applicable in Maharashtra.
+4. Gujarat State Laws
+RERA
+GujRERA (Gujarat RERA Rules)
+Enforces project registration and quarterly progress reporting.
+Flats & Apartments
+The Gujarat Ownership Flats Act, 1973
+Governs ownership of flats and redevelopment, including consent requirements.
+The Gujarat Apartment Ownership Act, 1973
+Governs apartment ownership and apartment associations.
+Planning
+The Gujarat Town Planning and Urban Development Act, 1976
+Governs zoning, town planning, land pooling, and urban development.
+Rent
+The Bombay Rents, Hotel and Lodging House Rates Control Act, 1947
+Continues to regulate rent control in Gujarat.
+Consumer Protection
+The Consumer Protection Act, 2019
+Allows buyers to seek remedies against builders for unfair practices and service deficiencies.
+Illegal Property Transactions
+The Prohibition of Benami Property Transactions Act, 1988
+Prohibits benami ownership of property.
+Land Acquisition
+The Right to Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013
+Governs compulsory acquisition of land.
+5. Important Real Estate Documents & Compliance Checks (Not Laws)
+Sale Deed
+Agreement for Sale
+Leave & License Agreement
+Lease Agreement
+Gift Deed
+Mortgage Deed
+Power of Attorney (PoA)
+Encumbrance Certificate (EC)
+Property Card
+7/12 Extract (Maharashtra)
+Mutation Entry
+Record of Rights (RoR)
+Non-Agricultural (NA) Order
+Approved Building Plan
+Commencement Certificate (CC)
+Occupancy Certificate (OC)
+Completion Certificate
+Fire NOC
+Environmental Clearance (EC)
+RERA Registration Certificate
+Society Share Certificate
+Title Search Report
+No Objection Certificates (NOCs) from relevant authorities
+Property Tax Receipts
+Electricity & Water Dues Clearance
+Building Completion Plan
+Development Agreement (where applicable)
