@@ -12,6 +12,9 @@ router.post('/chat', async (req, res) => {
         res.json(response);
     } catch (error) {
         console.error('Error in chat:', error);
+        if (error.status === 429) {
+            return res.status(429).json({ error: 'Rate limit reached. Please wait a moment before sending another message.' });
+        }
         res.status(500).json({ error: 'Failed to process chat', details: error.message });
     }
 });

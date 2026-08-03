@@ -23,6 +23,8 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
+    } else if (response.statusCode == 429) {
+      throw RateLimitException('Rate limit reached. Please try again later.');
     } else {
       throw Exception('Failed to analyze document');
     }
@@ -36,6 +38,8 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body)['explanation'];
+    } else if (response.statusCode == 429) {
+      throw RateLimitException('Rate limit reached. Please try again later.');
     } else {
       throw Exception('Failed to explain snippet');
     }
@@ -51,13 +55,20 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> chat(List<Map<String, dynamic>> history) async {
+    final sanitizedHistory = history.map((m) => {
+      'role': m['role'],
+      'text': m['text'],
+    }).toList();
+    
     final response = await http.post(
       Uri.parse('$baseUrl/chat'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'history': history}),
+      body: jsonEncode({'history': sanitizedHistory}),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
+    } else if (response.statusCode == 429) {
+      throw RateLimitException('Rate limit reached. Please wait a moment before sending another message.');
     } else {
       throw Exception('Failed to send chat message');
     }
@@ -140,4 +151,12 @@ class ApiService {
       throw Exception('Failed to fetch profile');
     }
   }
+}
+
+class RateLimitException implements Exception {
+  final String message;
+  RateLimitException(this.message);
+  
+  @override
+  String toString() => message;
 }

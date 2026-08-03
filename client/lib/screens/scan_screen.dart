@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../services/api_service.dart';
 import 'analysis_screen.dart';
 
@@ -60,6 +63,54 @@ class _ScanScreenState extends State<ScanScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _scanPdf() async {
+    try {
+      FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: kIsWeb, // Web requires bytes directly
+      );
+
+      if (result != null) {
+        setState(() {
+          _isProcessing = true;
+          _statusMessage = 'Extracting PDF text...';
+        });
+
+        List<int>? bytes;
+        if (kIsWeb) {
+          bytes = result.files.single.bytes?.toList();
+        } else {
+          final file = File(result.files.single.path!);
+          bytes = await file.readAsBytes();
+        }
+
+        if (bytes == null || bytes.isEmpty) {
+          throw Exception('Could not read file.');
+        }
+
+        final PdfDocument document = PdfDocument(inputBytes: bytes);
+        final String extractedText = PdfTextExtractor(document).extractText();
+        document.dispose();
+
+        if (extractedText.trim().isEmpty) {
+          throw Exception('No readable text found in this PDF.');
+        }
+
+        await _analyzeText(extractedText);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error reading PDF: ${e.toString()}')));
     } finally {
       if (mounted) {
         setState(() {
@@ -128,37 +179,46 @@ class _ScanScreenState extends State<ScanScreen> {
                   children: [
                     const Icon(Icons.document_scanner_outlined, size: 80, color: Colors.blueAccent),
                     const SizedBox(height: 24),
-                    if (_isMobile) ...[
-                      ElevatedButton.icon(
-                        onPressed: () => _scanImage(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Take a Photo'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => _scanImage(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Take a Photo'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () => _scanImage(ImageSource.gallery),
+                      icon: const Icon(Icons.image),
+                      label: const Text('Upload from Gallery'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _scanPdf,
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Upload PDF Document'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text('OR'),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: () => _scanImage(ImageSource.gallery),
-                        icon: const Icon(Icons.image),
-                        label: const Text('Upload from Gallery'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Row(
-                        children: [
-                          Expanded(child: Divider()),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Text('OR'),
-                          ),
-                          Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     TextField(
                       controller: _textController,
                       maxLines: 8,

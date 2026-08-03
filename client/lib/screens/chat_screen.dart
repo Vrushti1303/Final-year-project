@@ -27,8 +27,24 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      final history = _messages.map((m) => {'role': m['role'], 'text': m['text']}).toList();
-      final response = await ApiService.chat(history);
+      final List<Map<String, dynamic>> validHistory = [];
+      for (final m in _messages) {
+        if (m['role'] == 'error') continue;
+        
+        if (validHistory.isEmpty) {
+          if (m['role'] == 'user') {
+            validHistory.add({'role': m['role'], 'text': m['text']});
+          }
+        } else {
+          if (validHistory.last['role'] != m['role']) {
+            validHistory.add({'role': m['role'], 'text': m['text']});
+          } else if (m['role'] == 'user') {
+            validHistory[validHistory.length - 1] = {'role': m['role'], 'text': m['text']};
+          }
+        }
+      }
+
+      final response = await ApiService.chat(validHistory);
       setState(() {
         _messages.add({
           'role': 'ai',
@@ -36,6 +52,22 @@ class _ChatScreenState extends State<ChatScreen> {
           'suggestions': response['suggestions']
         });
       });
+    } on RateLimitException catch (e) {
+      setState(() {
+        _messages.add({
+          'role': 'error', 
+          'text': '⚠️ Our servers are currently busy due to high demand. Please wait 15 seconds before trying again.'
+        });
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Rate limit reached. Please wait a moment.'),
+            backgroundColor: Colors.orange.shade800,
+            duration: const Duration(seconds: 4),
+          )
+        );
+      }
     } catch (e) {
       setState(() {
         _messages.add({'role': 'error', 'text': 'Error: $e'});

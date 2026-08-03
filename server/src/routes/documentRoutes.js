@@ -12,6 +12,9 @@ router.post('/scan', async (req, res) => {
         res.json(analysis);
     } catch (error) {
         console.error('Error analyzing document:', error);
+        if (error.status === 429) {
+            return res.status(429).json({ error: 'Rate limit reached. Please wait a moment before trying again.' });
+        }
         res.status(500).json({ error: 'Failed to analyze document', details: error.message });
     }
 });
@@ -26,6 +29,9 @@ router.post('/explain', async (req, res) => {
         res.json({ explanation });
     } catch (error) {
         console.error('Error explaining snippet:', error);
+        if (error.status === 429) {
+            return res.status(429).json({ error: 'Rate limit reached. Please wait a moment before trying again.' });
+        }
         res.status(500).json({ error: 'Failed to explain snippet', details: error.message });
     }
 });

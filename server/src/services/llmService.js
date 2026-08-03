@@ -60,15 +60,50 @@ exports.explainSnippet = async (context, snippet) => {
 
 const mongoose = require('mongoose');
 const LawSnippet = require('../models/LawSnippet');
+const ChatCache = require('../models/ChatCache');
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function withRetry(fn, retries = 3, baseDelay = 2000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            const isRateLimit = error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('Quota exceeded') || error.message.includes('Too Many Requests')));
+            if (isRateLimit && i < retries - 1) {
+                const delay = baseDelay * Math.pow(2, i);
+                console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
+                await sleep(delay);
+                continue;
+            }
+            if (isRateLimit) {
+                const rateLimitError = new Error('Rate limit reached. Please wait a moment.');
+                rateLimitError.status = 429;
+                throw rateLimitError;
+            }
+            throw error;
+        }
+    }
+}
 
 exports.chat = async (historyArray) => {
     try {
         const latestMessage = historyArray[historyArray.length - 1].text;
 
+        // Check cache first
+        const cachedResponse = await ChatCache.findOne({ query: latestMessage });
+        if (cachedResponse) {
+            console.log('Serving from cache for query:', latestMessage);
+            return {
+                reply: cachedResponse.reply,
+                suggestions: cachedResponse.suggestions
+            };
+        }
+
         // 1. Generate an embedding for the user's latest question
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
-        const embeddingResult = await embeddingModel.embedContent(latestMessage);
+        const embeddingResult = await withRetry(() => embeddingModel.embedContent(latestMessage));
         const queryVector = embeddingResult.embedding.values;
 
         // 2. Search MongoDB for the most relevant laws using Vector Search
@@ -151,12 +186,29 @@ exports.chat = async (historyArray) => {
             ${latestMessage}
         `;
 
-        const result = await chatSession.sendMessage(prompt);
+        const result = await withRetry(() => chatSession.sendMessage(prompt));
         let rawText = result.response.text().trim();
         rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
-        return JSON.parse(rawText);
+        const finalResponse = JSON.parse(rawText);
+        
+        // Save to cache
+        try {
+            const newCache = new ChatCache({
+                query: latestMessage,
+                reply: finalResponse.reply,
+                suggestions: finalResponse.suggestions
+            });
+            await newCache.save();
+        } catch (cacheErr) {
+            console.warn('Failed to save to cache:', cacheErr.message);
+        }
+
+        return finalResponse;
     } catch (e) {
         console.error("AI API failed (either embedding or generation):", e.message);
+        if (e.status === 429) {
+            throw e; // Pass 429 up to routes
+        }
         return {
             reply: "I apologize, but our AI servers are currently experiencing extremely high demand. Generating or drafting complex contracts takes significant resources, and we are unable to fulfill this request at this exact moment. Please try again in a few minutes!",
             suggestions: []
