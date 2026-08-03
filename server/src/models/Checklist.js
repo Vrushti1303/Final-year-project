@@ -7,9 +7,13 @@ const checklistItemSchema = new mongoose.Schema({
 });
 
 const checklistSchema = new mongoose.Schema({
-    type: { type: String, required: true, unique: true }, // e.g., 'buying-resale'
+    userId: { type: String, required: true },
+    type: { type: String, required: true }, // e.g., 'buying-resale'
     title: { type: String, required: true },
     items: [checklistItemSchema]
 });
+
+// Ensure a user can only have one checklist of each type
+checklistSchema.index({ userId: 1, type: 1 }, { unique: true });
 
 module.exports = mongoose.model('Checklist', checklistSchema);

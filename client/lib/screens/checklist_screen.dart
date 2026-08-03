@@ -35,11 +35,29 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     }
   }
 
-  void _toggleItem(int index, bool? value) {
+  Future<void> _toggleItem(int index, bool? value) async {
+    final bool isCompleted = value ?? false;
+    final item = _checklistData!['items'][index];
+    final String itemId = item['id'];
+    
+    // Optimistic update
     setState(() {
-      _checklistData!['items'][index]['isCompleted'] = value;
+      item['isCompleted'] = isCompleted;
     });
-    // In a real app, send update to backend here
+
+    try {
+      await ApiService.updateChecklistItem(widget.type, itemId, isCompleted);
+    } catch (e) {
+      // Revert on failure
+      if (mounted) {
+        setState(() {
+          item['isCompleted'] = !isCompleted;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e')),
+        );
+      }
+    }
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class ApiService {
@@ -45,12 +46,41 @@ class ApiService {
     }
   }
 
+  static Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
   static Future<Map<String, dynamic>> fetchChecklist(String type) async {
-    final response = await http.get(Uri.parse('$baseUrl/checklists/$type'));
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/checklists/$type'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      }
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load checklist');
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateChecklistItem(String type, String itemId, bool isCompleted) async {
+    final token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/checklists/$type/items/$itemId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'isCompleted': isCompleted}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update checklist item');
     }
   }
 
