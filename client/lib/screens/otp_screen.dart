@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
@@ -203,10 +204,46 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+      body: Stack(
+        children: [
+          // Background Gradient Orbs
+          Positioned(
+            top: -100,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.primary.withValues(alpha: 0.3),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.secondary.withValues(alpha: 0.2),
+              ),
+            ),
+          ),
+          // Blur Layer
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 100.0, sigmaY: 100.0),
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 20.0),
               child: FadeTransition(
@@ -234,10 +271,29 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Icon(
-                              Icons.mark_email_read_outlined,
-                              size: 48,
-                              color: colorScheme.primary,
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      colorScheme.primary.withValues(alpha: 0.2),
+                                      colorScheme.primary.withValues(alpha: 0.05),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  border: Border.all(
+                                    color: colorScheme.primary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.mark_email_read_outlined,
+                                  size: 48,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 32),
                             Text(
@@ -326,6 +382,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
             ),
           ),
         ),
+      ),
+        ],
       ),
     );
   }
