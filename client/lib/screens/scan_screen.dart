@@ -159,96 +159,393 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const bgColor = Color(0xFF171218);
+    const surfaceColor = Color(0xFF211A24);
+    const primaryAccent = Color(0xFF564C63);
+    const textPrimary = Color(0xFFF5F5F5);
+    const textSecondary = Color(0xFFB8B8B8);
+    const borderColor = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan or Input Document')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
         child: Center(
-          child: _isProcessing
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 60),
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(_statusMessage, style: const TextStyle(fontSize: 16)),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.document_scanner_outlined, size: 80, color: Colors.blueAccent),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () => _scanImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Take a Photo'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () => _scanImage(ImageSource.gallery),
-                      icon: const Icon(Icons.image),
-                      label: const Text('Upload from Gallery'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _scanPdf,
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text('Upload PDF Document'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Row(
-                      children: [
-                        Expanded(child: Divider()),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text('OR'),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 250),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: child,
+                );
+              },
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: _isProcessing
+                    ? _buildProcessingState(textPrimary, textSecondary, primaryAccent)
+                    : SingleChildScrollView(
+                        key: const ValueKey('main_form'),
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Scan or Input Document',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Upload a legal document for AI-powered verification and analysis.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Hero Icon
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: primaryAccent.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.document_scanner_outlined, size: 48, color: primaryAccent),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Upload Card
+                            Container(
+                              padding: const EdgeInsets.all(28),
+                              decoration: BoxDecoration(
+                                color: surfaceColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: borderColor),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 30,
+                                    offset: const Offset(0, 15),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _HoverableButton(
+                                    icon: Icons.camera_alt,
+                                    label: 'Take a Photo',
+                                    onPressed: () => _scanImage(ImageSource.camera),
+                                    isPrimary: true,
+                                    primaryAccent: primaryAccent,
+                                    textPrimary: textPrimary,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _HoverableButton(
+                                    icon: Icons.image,
+                                    label: 'Upload from Gallery',
+                                    onPressed: () => _scanImage(ImageSource.gallery),
+                                    isPrimary: false,
+                                    primaryAccent: primaryAccent,
+                                    textPrimary: textPrimary,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _HoverableButton(
+                                    icon: Icons.picture_as_pdf,
+                                    label: 'Upload PDF',
+                                    onPressed: _scanPdf,
+                                    isPrimary: false,
+                                    primaryAccent: primaryAccent,
+                                    textPrimary: textPrimary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 32),
+                            // Divider
+                            Row(
+                              children: [
+                                Expanded(child: Divider(color: borderColor, thickness: 1)),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Text('OR', style: TextStyle(color: textSecondary, fontSize: 14)),
+                                ),
+                                Expanded(child: Divider(color: borderColor, thickness: 1)),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Text Entry Card
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: surfaceColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: borderColor),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 30,
+                                    offset: const Offset(0, 15),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Document Content',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w500,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Paste or type the legal document here.',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _FocusableTextField(
+                                    controller: _textController,
+                                    bgColor: bgColor,
+                                    borderColor: borderColor,
+                                    primaryAccent: primaryAccent,
+                                    textPrimary: textPrimary,
+                                    textSecondary: textSecondary,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _HoverableButton(
+                                    icon: Icons.analytics_outlined,
+                                    label: 'Analyze Document Text',
+                                    onPressed: () {
+                                      if (_textController.text.trim().isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Please enter or paste document text.', style: TextStyle(color: Colors.white)),
+                                            backgroundColor: Color(0xFFD76C6C),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      _analyzeText(_textController.text.trim());
+                                    },
+                                    isPrimary: true,
+                                    primaryAccent: primaryAccent,
+                                    textPrimary: textPrimary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _textController,
-                      maxLines: 8,
-                      decoration: const InputDecoration(
-                        hintText: 'Paste legal document text here...',
-                        border: OutlineInputBorder(),
-                        labelText: 'Document Content',
                       ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcessingState(Color textPrimary, Color textSecondary, Color primaryAccent) {
+    return Center(
+      key: const ValueKey('processing_state'),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: primaryAccent),
+          const SizedBox(height: 24),
+          Text(
+            _statusMessage, 
+            style: TextStyle(fontSize: 18, color: textPrimary, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please wait while we process your request.',
+            style: TextStyle(fontSize: 14, color: textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HoverableButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+  final Color primaryAccent;
+  final Color textPrimary;
+
+  const _HoverableButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.isPrimary,
+    required this.primaryAccent,
+    required this.textPrimary,
+  });
+
+  @override
+  State<_HoverableButton> createState() => _HoverableButtonState();
+}
+
+class _HoverableButtonState extends State<_HoverableButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedScale(
+        scale: _isHovered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        child: SizedBox(
+          height: 56,
+          child: widget.isPrimary
+              ? ElevatedButton.icon(
+                  onPressed: widget.onPressed,
+                  icon: Icon(widget.icon, color: Colors.white),
+                  label: Text(widget.label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.primaryAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        if (_textController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter or paste document text.')),
-                          );
-                          return;
-                        }
-                        _analyzeText(_textController.text.trim());
-                      },
-                      icon: const Icon(Icons.analytics_outlined),
-                      label: const Text('Analyze Document Text'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
+                    elevation: _isHovered ? 6 : 2,
+                  ),
+                )
+              : OutlinedButton.icon(
+                  onPressed: widget.onPressed,
+                  icon: Icon(widget.icon, color: widget.textPrimary),
+                  label: Text(widget.label, style: TextStyle(color: widget.textPrimary, fontSize: 16, fontWeight: FontWeight.w500)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: widget.primaryAccent),
+                    backgroundColor: _isHovered ? widget.primaryAccent.withValues(alpha: 0.1) : Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ],
+                  ),
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusableTextField extends StatefulWidget {
+  final TextEditingController controller;
+  final Color bgColor;
+  final Color borderColor;
+  final Color primaryAccent;
+  final Color textPrimary;
+  final Color textSecondary;
+
+  const _FocusableTextField({
+    required this.controller,
+    required this.bgColor,
+    required this.borderColor,
+    required this.primaryAccent,
+    required this.textPrimary,
+    required this.textSecondary,
+  });
+
+  @override
+  State<_FocusableTextField> createState() => _FocusableTextFieldState();
+}
+
+class _FocusableTextFieldState extends State<_FocusableTextField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: widget.primaryAccent.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                )
+              ]
+            : [],
+      ),
+      child: TextField(
+        controller: widget.controller,
+        focusNode: _focusNode,
+        minLines: 10,
+        maxLines: null,
+        style: TextStyle(color: widget.textPrimary, fontSize: 16),
+        decoration: InputDecoration(
+          hintText: 'Paste your legal document here...',
+          hintStyle: TextStyle(color: widget.textSecondary),
+          filled: true,
+          fillColor: widget.bgColor,
+          contentPadding: const EdgeInsets.all(18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: widget.borderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: widget.borderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: widget.primaryAccent, width: 2),
+          ),
         ),
       ),
     );
