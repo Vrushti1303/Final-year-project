@@ -215,3 +215,25 @@ exports.chat = async (historyArray) => {
         };
     }
 };
+
+exports.generateChecklist = async (prompt) => {
+    const model = getGenerativeModel();
+    const systemInstruction = `
+        You are an expert Indian Real Estate legal advisor. The user will provide a real estate transaction scenario. 
+        Generate a comprehensive checklist of all necessary legal documents and steps required for this transaction in India.
+        Return ONLY a JSON array of objects, where each object has an 'id' (string number starting from '1') and a 'title' (string, short and concise, max 10 words).
+        Example: [{"id": "1", "title": "Verify Title Deed"}, {"id": "2", "title": "Check Encumbrance Certificate"}]
+        Do not use markdown backticks. Return valid JSON only.
+    `;
+    
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const configuredModel = genAI.getGenerativeModel({
+        model: "gemini-3.6-flash",
+        systemInstruction: systemInstruction
+    });
+
+    const result = await withRetry(() => configuredModel.generateContent(prompt));
+    let rawText = result.response.text().trim();
+    rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
+    return JSON.parse(rawText);
+};

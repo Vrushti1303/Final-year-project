@@ -51,6 +51,22 @@ class ApiService {
     return prefs.getString('jwt_token');
   }
 
+  static Future<List<dynamic>> fetchAllChecklists() async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/checklists'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      }
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load checklists');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchChecklist(String type) async {
     final token = await _getToken();
     final response = await http.get(
@@ -81,6 +97,40 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to update checklist item');
+    }
+  }
+
+  static Future<Map<String, dynamic>> addChecklistItem(String type, String title) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/checklists/$type/items'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'title': title}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to add checklist item');
+    }
+  }
+
+  static Future<Map<String, dynamic>> generateChecklist(String prompt) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/checklists/generate'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'prompt': prompt}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to generate checklist');
     }
   }
 

@@ -4,6 +4,8 @@ import '../providers/auth_provider.dart';
 import 'scan_screen.dart';
 import 'checklist_screen.dart';
 import 'chat_screen.dart';
+import '../services/api_service.dart';
+import 'checklists_list_screen.dart';
 
 const _bgColor = Color(0xFF171218);
 const _surfaceColor = Color(0xFF211A24);
@@ -300,7 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                               subtitle: 'Ensure safe real estate transactions',
                               icon: Icons.checklist_rounded,
                               iconColor: const Color(0xFF10B981), // Soft Emerald
-                              onTap: () => _navigateTo(const ChecklistScreen(type: 'buying-resale')),
+                              onTap: () => _navigateTo(const ChecklistsListScreen()),
                               index: 1,
                               parentAnimation: _animationController,
                             ),
