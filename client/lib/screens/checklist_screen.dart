@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/theme_toggle_button.dart';
 
-const _bgColor = Color(0xFF171218);
-const _surfaceColor = Color(0xFF211A24);
-const _primaryColor = Color(0xFF564C63);
-const _secondaryColor = Color(0xFF7D84A6);
-const _textPrimary = Color(0xFFF5F5F5);
-const _textSecondary = Color(0xFFB8B8B8);
-const _errorColor = Color(0xFFD76C6C);
+
 
 class ChecklistScreen extends StatefulWidget {
   final String type;
@@ -64,8 +59,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update: $e', style: const TextStyle(color: Colors.white)),
-            backgroundColor: _errorColor,
+            content: Text('Failed to update: $e', style: TextStyle(color: Theme.of(context).colorScheme.onError)),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -73,6 +68,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   void _showAddItemDialog() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final TextEditingController controller = TextEditingController();
     bool isAdding = false;
 
@@ -83,29 +80,29 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: _surfaceColor,
+              backgroundColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                side: BorderSide(color: colorScheme.outline),
               ),
-              title: const Text('Add New Item', style: TextStyle(color: _textPrimary)),
+              title: Text('Add New Item', style: TextStyle(color: colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Enter the title of the new task',
-                    style: TextStyle(color: _textSecondary),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: controller,
-                    style: const TextStyle(color: _textPrimary),
+                    style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: 'e.g. Verify Title Deed',
-                      hintStyle: TextStyle(color: _textSecondary.withValues(alpha: 0.5)),
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       filled: true,
-                      fillColor: _bgColor,
+                      fillColor: theme.scaffoldBackgroundColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -115,9 +112,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     autofocus: true,
                   ),
                   if (isAdding)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 24),
-                      child: Center(child: CircularProgressIndicator(color: Color(0xFF10B981))),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 24),
+                      child: Center(child: CircularProgressIndicator(color: colorScheme.primary)),
                     ),
                 ],
               ),
@@ -125,12 +122,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 if (!isAdding)
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: _textSecondary)),
+                    child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ),
                 if (!isAdding)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: colorScheme.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -149,14 +146,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error: $e', style: const TextStyle(color: Colors.white)),
-                              backgroundColor: _errorColor,
+                              content: Text('Error: $e', style: TextStyle(color: colorScheme.onError)),
+                              backgroundColor: colorScheme.error,
                             ),
                           );
                         }
                       }
                     },
-                    child: const Text('Add', style: TextStyle(color: Colors.white)),
+                    child: Text('Add', style: TextStyle(color: colorScheme.onPrimary)),
                   ),
               ],
             );
@@ -168,41 +165,47 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _textPrimary),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           _checklistData?['title'] ?? 'Checklist',
-          style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       floatingActionButton: _checklistData != null && !_isLoading
           ? FloatingActionButton.extended(
               onPressed: _showAddItemDialog,
-              backgroundColor: const Color(0xFF10B981),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Add Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              backgroundColor: colorScheme.primary,
+              icon: Icon(Icons.add, color: colorScheme.onPrimary),
+              label: Text('Add Item', style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
             )
           : null,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: _errorColor)),
+                      Text(_error!, style: TextStyle(color: colorScheme.error)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadChecklist,
-                        style: ElevatedButton.styleFrom(backgroundColor: _surfaceColor),
-                        child: const Text('Retry', style: TextStyle(color: _textPrimary)),
+                        style: ElevatedButton.styleFrom(backgroundColor: colorScheme.surface),
+                        child: Text('Retry', style: TextStyle(color: colorScheme.onSurface)),
                       )
                     ],
                   ),
@@ -213,27 +216,27 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   itemBuilder: (context, index) {
                     final item = _checklistData!['items'][index];
                     return Card(
-                      color: _surfaceColor,
+                      color: colorScheme.surface,
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                        side: BorderSide(color: colorScheme.outline),
                       ),
                       child: CheckboxListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         title: Text(
                           item['title'],
                           style: TextStyle(
-                            color: item['isCompleted'] ? _textSecondary : _textPrimary,
+                            color: item['isCompleted'] ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
                             decoration: item['isCompleted'] ? TextDecoration.lineThrough : null,
                             fontSize: 16,
                           ),
                         ),
                         value: item['isCompleted'],
                         onChanged: (val) => _toggleItem(index, val),
-                        activeColor: const Color(0xFF10B981),
-                        checkColor: Colors.white,
-                        side: const BorderSide(color: _secondaryColor),
+                        activeColor: colorScheme.primary,
+                        checkColor: colorScheme.onPrimary,
+                        side: BorderSide(color: colorScheme.secondary),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),

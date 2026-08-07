@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../services/api_service.dart';
 import 'analysis_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -159,12 +160,13 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bgColor = Color(0xFF171218);
-    const surfaceColor = Color(0xFF211A24);
-    const primaryAccent = Color(0xFF564C63);
-    const textPrimary = Color(0xFFF5F5F5);
-    const textSecondary = Color(0xFFB8B8B8);
-    const borderColor = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
+    final colorScheme = Theme.of(context).colorScheme;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final surfaceColor = colorScheme.surface;
+    final primaryAccent = colorScheme.primary;
+    final textPrimary = colorScheme.onSurface;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    final borderColor = colorScheme.outline;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -172,9 +174,12 @@ class _ScanScreenState extends State<ScanScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: textPrimary),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -199,7 +204,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Text(
+                            Text(
                               'Scan or Input Document',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -209,7 +214,7 @@ class _ScanScreenState extends State<ScanScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Upload a legal document for AI-powered verification and analysis.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -233,7 +238,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(Icons.document_scanner_outlined, size: 48, color: primaryAccent),
+                              child: Icon(Icons.document_scanner_outlined, size: 48, color: primaryAccent),
                             ),
                             const SizedBox(height: 32),
 
@@ -290,8 +295,8 @@ class _ScanScreenState extends State<ScanScreen> {
                             Row(
                               children: [
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                   child: Text('OR', style: TextStyle(color: textSecondary, fontSize: 14)),
                                 ),
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
@@ -317,7 +322,7 @@ class _ScanScreenState extends State<ScanScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Document Content',
                                     style: TextStyle(
                                       fontSize: 20,
@@ -326,7 +331,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Text(
+                                  Text(
                                     'Paste or type the legal document here.',
                                     style: TextStyle(
                                       fontSize: 16,

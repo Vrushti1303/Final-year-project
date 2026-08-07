@@ -33,7 +33,10 @@ exports.analyzeContract = async (text) => {
         ${text}
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await withRetry(
+        () => model.generateContent(prompt),
+        () => fallbackToOpenRouter(prompt)
+    );
     let responseText = result.response.text();
     responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(responseText);
@@ -54,7 +57,10 @@ exports.explainSnippet = async (context, snippet) => {
         ${snippet}
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await withRetry(
+        () => model.generateContent(prompt),
+        () => fallbackToOpenRouter(prompt)
+    );
     return result.response.text();
 };
 
@@ -64,12 +70,76 @@ const ChatCache = require('../models/ChatCache');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function withRetry(fn, retries = 3, baseDelay = 2000) {
+async function fallbackToOpenRouter(prompt, systemInstruction) {
+    if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY is not configured.');
+    }
+    
+    let messages = [];
+    if (systemInstruction) {
+        messages.push({ role: "system", content: systemInstruction });
+    }
+    
+    if (Array.isArray(prompt)) {
+        // Chat history array
+        messages = messages.concat(prompt.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.text
+        })));
+    } else {
+        // Simple string prompt
+        messages.push({ role: "user", content: prompt });
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Legal Document Scanner",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            // Using a fast model on OpenRouter as fallback
+            "model": "google/gemini-1.5-pro", 
+            "messages": messages
+        })
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenRouter API failed with status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    const resultText = data.choices[0].message.content;
+    
+    // Return in a format compatible with Gemini's response object
+    return {
+        response: {
+            text: () => resultText
+        }
+    };
+}
+
+async function withRetry(fn, fallbackFn = null, retries = 3, baseDelay = 2000) {
     for (let i = 0; i < retries; i++) {
         try {
             return await fn();
         } catch (error) {
             const isRateLimit = error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('Quota exceeded') || error.message.includes('Too Many Requests')));
+            
+            // Trigger fallback immediately on rate limit if configured
+            if (isRateLimit && fallbackFn && process.env.OPENROUTER_API_KEY) {
+                console.warn('Gemini rate limit hit. Falling back to OpenRouter...');
+                try {
+                    return await fallbackFn();
+                } catch (fallbackError) {
+                    console.error('OpenRouter fallback failed:', fallbackError.message);
+                    // If fallback fails, throw the original rate limit error to trigger standard behavior
+                }
+            }
+
             if (isRateLimit && i < retries - 1) {
                 const delay = baseDelay * Math.pow(2, i);
                 console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
@@ -186,7 +256,15 @@ exports.chat = async (historyArray) => {
             ${latestMessage}
         `;
 
-        const result = await withRetry(() => chatSession.sendMessage(prompt));
+        const fallbackHistory = [...historyArray];
+        fallbackHistory[fallbackHistory.length - 1] = {
+            role: 'user',
+            text: prompt
+        };
+        const result = await withRetry(
+            () => chatSession.sendMessage(prompt),
+            () => fallbackToOpenRouter(fallbackHistory, systemInstruction)
+        );
         let rawText = result.response.text().trim();
         rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
         const finalResponse = JSON.parse(rawText);
@@ -232,7 +310,10 @@ exports.generateChecklist = async (prompt) => {
         systemInstruction: systemInstruction
     });
 
-    const result = await withRetry(() => configuredModel.generateContent(prompt));
+    const result = await withRetry(
+        () => configuredModel.generateContent(prompt),
+        () => fallbackToOpenRouter(prompt, systemInstruction)
+    );
     let rawText = result.response.text().trim();
     rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
     return JSON.parse(rawText);

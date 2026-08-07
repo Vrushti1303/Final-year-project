@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String email;
@@ -167,11 +168,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
     final defaultPinTheme = PinTheme(
       width: 56,
       height: 64,
-      textStyle: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.w600),
+      textStyle: TextStyle(fontSize: 24, color: colorScheme.onSurface, fontWeight: FontWeight.w600),
       decoration: BoxDecoration(
-        color: const Color(0xFF171218),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: colorScheme.outline),
       ),
     );
 
@@ -190,19 +191,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: defaultPinTheme.decoration!.copyWith(
-        color: const Color(0xFF171218),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: colorScheme.surfaceContainerHighest,
+        border: Border.all(color: colorScheme.outline),
       ),
     );
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Stack(
         children: [
@@ -259,7 +263,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                         decoration: BoxDecoration(
                           color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          border: Border.all(color: colorScheme.outline),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.2),
@@ -329,7 +333,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                               _start > 0 ? 'Code expires in $_formattedTime' : 'Code has expired',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: _start > 0 ? Colors.white70 : theme.colorScheme.error,
+                                color: _start > 0 ? colorScheme.onSurfaceVariant : theme.colorScheme.error,
                                 fontSize: 14,
                               ),
                             ),
@@ -339,12 +343,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                             ElevatedButton(
                               onPressed: authState.status == AuthStatus.loading || _start == 0 ? null : _verifyOtp,
                               child: authState.status == AuthStatus.loading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       height: 24,
                                       width: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                                       ),
                                     )
                                   : const Text('Verify'),
@@ -367,7 +371,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                             child: Text(
                               _canResend ? 'Resend' : 'Wait ${_resendCooldown}s',
                               style: TextStyle(
-                                color: _canResend ? colorScheme.primary : Colors.white38,
+                                color: _canResend ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.38),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),

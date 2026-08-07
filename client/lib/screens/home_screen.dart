@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'scan_screen.dart';
-import 'checklist_screen.dart';
 import 'chat_screen.dart';
-import '../services/api_service.dart';
 import 'checklists_list_screen.dart';
-
-const _bgColor = Color(0xFF171218);
-const _surfaceColor = Color(0xFF211A24);
-const _primaryColor = Color(0xFF564C63);
-const _secondaryColor = Color(0xFF7D84A6);
-const _textPrimary = Color(0xFFF5F5F5);
-const _textSecondary = Color(0xFFB8B8B8);
-const _errorColor = Color(0xFFD76C6C);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,7 +24,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 500),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -55,175 +47,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   void _handleLogout() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: _surfaceColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        title: const Text('Logout', style: TextStyle(color: _textPrimary)),
-        content: const Text('Are you sure you want to log out?', style: TextStyle(color: _textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: _textSecondary)),
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: colorScheme.outline),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(authProvider.notifier).logout();
-            },
-            child: const Text('Logout', style: TextStyle(color: _errorColor)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(dynamic user, BoxConstraints constraints) {
-    final isMobile = constraints.maxWidth < 600;
-
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Legal Document Scanner',
-                  style: TextStyle(
-                    color: _textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout, color: _textSecondary),
-                onPressed: _handleLogout,
-                splashRadius: 24,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (user != null)
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _primaryColor.withValues(alpha: 0.2),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                  ),
-                  child: const Icon(Icons.person, color: _secondaryColor),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.fullName,
-                        style: const TextStyle(
-                          color: _textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        user.displayIdentifier,
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          title: Text('Logout', style: TextStyle(color: colorScheme.onSurface)),
+          content: Text('Are you sure you want to log out?', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
             ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: user != null
-              ? Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _primaryColor.withValues(alpha: 0.2),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: const Icon(Icons.person, color: _secondaryColor),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.fullName,
-                            style: const TextStyle(
-                              color: _textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            user.displayIdentifier,
-                            style: const TextStyle(
-                              color: _textSecondary,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              : const SizedBox.shrink(),
-        ),
-        const Expanded(
-          flex: 2,
-          child: Text(
-            'Legal Document Scanner',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ref.read(authProvider.notifier).logout();
+              },
+              child: Text('Logout', style: TextStyle(color: colorScheme.error)),
             ),
-          ),
-        ),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              icon: const Icon(Icons.logout, color: _textSecondary),
-              onPressed: _handleLogout,
-              splashRadius: 24,
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -239,240 +87,155 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final themeMode = ref.watch(themeProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: _bgColor,
+      appBar: AppBar(
+        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
+        centerTitle: false,
+        actions: [
+          const ThemeToggleButton(),
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () {},
+            tooltip: 'Notifications',
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0, left: 8.0),
+            child: GestureDetector(
+              onTap: _handleLogout,
+              child: CircleAvatar(
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                child: Icon(Icons.person_rounded, color: colorScheme.primary),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 800),
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildHeader(user, constraints),
-                            
-                            const SizedBox(height: 48),
-                            
-                            const Text(
-                              'Navigate Property Laws\nwith Confidence',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _textPrimary,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Securely analyze legal documents with AI-powered insights.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _textSecondary,
-                                fontSize: 16,
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 48),
-                            
-                            _FeatureCard(
-                              title: 'Scan Document',
-                              subtitle: 'Extract text & analyze for risks',
-                              icon: Icons.document_scanner_rounded,
-                              iconColor: const Color(0xFF6366F1), // Soft Indigo
-                              onTap: () => _navigateTo(const ScanScreen()),
-                              index: 0,
-                              parentAnimation: _animationController,
-                            ),
-                            _FeatureCard(
-                              title: 'Transaction Checklists',
-                              subtitle: 'Ensure safe real estate transactions',
-                              icon: Icons.checklist_rounded,
-                              iconColor: const Color(0xFF10B981), // Soft Emerald
-                              onTap: () => _navigateTo(const ChecklistsListScreen()),
-                              index: 1,
-                              parentAnimation: _animationController,
-                            ),
-                            _FeatureCard(
-                              title: 'Legal AI Chat',
-                              subtitle: 'Ask queries & draft agreements',
-                              icon: Icons.chat_bubble_outline_rounded,
-                              iconColor: const Color(0xFFF59E0B), // Soft Amber
-                              onTap: () => _navigateTo(const ChatScreen()),
-                              index: 2,
-                              parentAnimation: _animationController,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FeatureCard extends StatefulWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-  final int index;
-  final Animation<double> parentAnimation;
-
-  const _FeatureCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.iconColor,
-    required this.onTap,
-    required this.index,
-    required this.parentAnimation,
-  });
-
-  @override
-  State<_FeatureCard> createState() => _FeatureCardState();
-}
-
-class _FeatureCardState extends State<_FeatureCard> with SingleTickerProviderStateMixin {
-  bool _isHovered = false;
-  bool _isPressed = false;
-  
-  late Animation<double> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    final double start = (widget.index * 0.15).clamp(0.0, 1.0);
-    final double end = (start + 0.5).clamp(0.0, 1.0);
-    
-    _slideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: widget.parentAnimation,
-        curve: Interval(start, end, curve: Curves.easeOutCubic),
-      ),
-    );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: widget.parentAnimation,
-        curve: Interval(start, end, curve: Curves.easeOut),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.parentAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _slideAnimation.value),
-          child: Opacity(
-            opacity: _fadeAnimation.value,
-            child: child,
-          ),
-        );
-      },
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) {
-            setState(() => _isPressed = false);
-            widget.onTap();
-          },
-          onTapCancel: () => setState(() => _isPressed = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            transform: Matrix4.diagonal3Values(
-              _isPressed ? 0.98 : (_isHovered ? 1.02 : 1.0),
-              _isPressed ? 0.98 : (_isHovered ? 1.02 : 1.0),
-              1.0,
-            ),
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              color: _surfaceColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: _isHovered 
-                    ? widget.iconColor.withValues(alpha: 0.5) 
-                    : Colors.white.withValues(alpha: 0.08),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: _isHovered ? 0.4 : 0.2),
-                  blurRadius: _isHovered ? 20 : 10,
-                  offset: Offset(0, _isHovered ? 10 : 5),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: widget.iconColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(widget.icon, color: widget.iconColor, size: 24),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
+            child: SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Greeting Section
                         Text(
-                          widget.title,
-                          style: const TextStyle(
-                            color: _textPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                          '${_getGreeting()},',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Text(
-                          widget.subtitle,
-                          style: const TextStyle(
-                            color: _textSecondary,
-                            fontSize: 16,
+                          user?.fullName ?? 'User',
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.5,
                           ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Quick Actions
+                        Text(
+                          'Quick Actions',
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth > 800) {
+                              return Row(
+                                children: [
+                                  Expanded(child: _buildQuickActionCard(context, 'Scan Agreement', 'Analyze documents', Icons.document_scanner_rounded, colorScheme.primary, () => _navigateTo(const ScanScreen()))),
+                                  const SizedBox(width: 24),
+                                  Expanded(child: _buildQuickActionCard(context, 'Legal Chatbot', 'Ask legal questions', Icons.chat_bubble_rounded, colorScheme.tertiary, () => _navigateTo(const ChatScreen()))),
+                                  const SizedBox(width: 24),
+                                  Expanded(child: _buildQuickActionCard(context, 'Property Checklist', 'Transaction guides', Icons.checklist_rounded, colorScheme.secondary, () => _navigateTo(const ChecklistsListScreen()))),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  _buildQuickActionCard(context, 'Scan Agreement', 'Analyze documents for risk', Icons.document_scanner_rounded, colorScheme.primary, () => _navigateTo(const ScanScreen())),
+                                  const SizedBox(height: 16),
+                                  _buildQuickActionCard(context, 'Legal Chatbot', 'Ask legal questions', Icons.chat_bubble_rounded, colorScheme.tertiary, () => _navigateTo(const ChatScreen())),
+                                  const SizedBox(height: 16),
+                                  _buildQuickActionCard(context, 'Property Checklist', 'Transaction guides', Icons.checklist_rounded, colorScheme.secondary, () => _navigateTo(const ChecklistsListScreen())),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 48),
+
+                        // Bottom Layout (Recent Docs & Alerts)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth > 800) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 2, child: _buildRecentDocuments(context)),
+                                  const SizedBox(width: 32),
+                                  Expanded(flex: 1, child: Column(
+                                    children: [
+                                      _buildAlertsSection(context, 'Latest Legal Updates', Icons.gavel_rounded),
+                                      const SizedBox(height: 24),
+                                      _buildAlertsSection(context, 'RERA Alerts', Icons.warning_rounded, isWarning: true),
+                                    ],
+                                  )),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  _buildRecentDocuments(context),
+                                  const SizedBox(height: 32),
+                                  _buildAlertsSection(context, 'Latest Legal Updates', Icons.gavel_rounded),
+                                  const SizedBox(height: 24),
+                                  _buildAlertsSection(context, 'RERA Alerts', Icons.warning_rounded, isWarning: true),
+                                ],
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: _isHovered ? widget.iconColor : _textSecondary,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -480,4 +243,216 @@ class _FeatureCardState extends State<_FeatureCard> with SingleTickerProviderSta
       ),
     );
   }
+
+  Widget _buildQuickActionCard(BuildContext context, String title, String subtitle, IconData icon, Color iconColor, VoidCallback onTap) {
+    return _HoverCard(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentDocuments(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Documents',
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextButton(
+              onPressed: () {},
+              child: const Text('View All'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _HoverCard(
+          onTap: () {},
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 3,
+            separatorBuilder: (context, index) => Divider(color: colorScheme.outline, height: 1),
+            itemBuilder: (context, index) {
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.description_rounded, color: colorScheme.primary),
+                ),
+                title: Text('Sale Agreement - Unit ${101 + index}', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
+                subtitle: Text('Scanned 2 days ago', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                trailing: Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertsSection(BuildContext context, String title, IconData icon, {bool isWarning = false}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = isWarning ? colorScheme.tertiary : colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _HoverCard(
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isWarning ? 'New RERA Guidelines' : 'Supreme Court Update',
+                        style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Read the latest changes...',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+class _HoverCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _HoverCard({required this.child, this.onTap});
+
+  @override
+  State<_HoverCard> createState() => _HoverCardState();
+}
+
+class _HoverCardState extends State<_HoverCard> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap?.call();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          transform: Matrix4.diagonal3Values(
+            _isPressed ? 0.98 : (_isHovered ? 1.02 : 1.0),
+            _isPressed ? 0.98 : (_isHovered ? 1.02 : 1.0),
+            1.0,
+          ),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered ? colorScheme.primary.withValues(alpha: 0.5) : colorScheme.outline,
+            ),
+            boxShadow: [
+              if (isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: _isHovered ? 12 : 8,
+                  offset: Offset(0, _isHovered ? 6 : 4),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: _isHovered ? 0.08 : 0.04),
+                  blurRadius: _isHovered ? 16 : 8,
+                  offset: Offset(0, _isHovered ? 8 : 4),
+                ),
+            ],
+          ),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+

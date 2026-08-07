@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import 'signup_screen.dart';
 import 'otp_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -90,9 +91,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios, color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Stack(
         children: [
@@ -150,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                         decoration: BoxDecoration(
                           color: colorScheme.surface,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          border: Border.all(color: colorScheme.outline),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.2),
@@ -203,9 +207,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                             // Segmented Control
                             Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF171218), // Darker background
+                                color: colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                border: Border.all(color: colorScheme.outline),
                               ),
                               padding: const EdgeInsets.all(4),
                               child: Row(
@@ -227,7 +231,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            color: _isEmailMode ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                            color: _isEmailMode ? colorScheme.onPrimary : theme.textTheme.bodyMedium?.color,
                                           ),
                                         ),
                                       ),
@@ -250,7 +254,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
-                                            color: !_isEmailMode ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                            color: !_isEmailMode ? colorScheme.onPrimary : theme.textTheme.bodyMedium?.color,
                                           ),
                                         ),
                                       ),
@@ -270,7 +274,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   TextFormField(
                                     controller: _identifierController,
                                     keyboardType: _isEmailMode ? TextInputType.emailAddress : TextInputType.phone,
-                                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                                    style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
                                     decoration: InputDecoration(
                                       labelText: _isEmailMode ? 'Email Address' : 'Mobile Number',
                                       hintText: _isEmailMode ? 'name@example.com' : 'e.g. 9876543210',
@@ -303,12 +307,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   ElevatedButton(
                                     onPressed: authState.status == AuthStatus.loading ? null : _submit,
                                     child: authState.status == AuthStatus.loading
-                                        ? const SizedBox(
+                                        ? SizedBox(
                                             height: 24,
                                             width: 24,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                                             ),
                                           )
                                         : const Text('Login'),

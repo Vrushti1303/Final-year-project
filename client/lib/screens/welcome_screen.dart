@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -46,7 +47,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: Stack(
+          children: [
+            Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: FadeTransition(
@@ -142,13 +145,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       ),
                       const SizedBox(height: 40),
                     ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+                  ), // Column
+                ), // Padding
+              ), // SlideTransition
+            ), // FadeTransition
+          ), // ConstrainedBox
+        ), // Center
+        const Positioned(
+          top: 16,
+          right: 16,
+          child: ThemeToggleButton(),
         ),
-      ),
-    );
+      ],
+    ), // Stack
+  ), // SafeArea
+); // Scaffold
   }
 }

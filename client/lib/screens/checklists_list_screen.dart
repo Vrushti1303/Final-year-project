@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'checklist_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
-const _bgColor = Color(0xFF171218);
-const _surfaceColor = Color(0xFF211A24);
-const _primaryColor = Color(0xFF564C63);
-const _secondaryColor = Color(0xFF7D84A6);
-const _textPrimary = Color(0xFFF5F5F5);
-const _textSecondary = Color(0xFFB8B8B8);
-const _errorColor = Color(0xFFD76C6C);
+
 
 class ChecklistsListScreen extends StatefulWidget {
   const ChecklistsListScreen({super.key});
@@ -60,6 +55,8 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
   }
 
   void _showChecklistDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final TextEditingController controller = TextEditingController();
     bool isGenerating = false;
 
@@ -70,29 +67,29 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: _surfaceColor,
+              backgroundColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                side: BorderSide(color: colorScheme.outline),
               ),
-              title: const Text('New Checklist', style: TextStyle(color: _textPrimary)),
+              title: Text('New Checklist', style: TextStyle(color: colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'What kind of transaction are you doing?',
-                    style: TextStyle(color: _textSecondary),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: controller,
-                    style: const TextStyle(color: _textPrimary),
+                    style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: 'e.g. Selling a flat in Mumbai',
-                      hintStyle: TextStyle(color: _textSecondary.withValues(alpha: 0.5)),
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       filled: true,
-                      fillColor: _bgColor,
+                      fillColor: theme.scaffoldBackgroundColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -102,9 +99,9 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                     enabled: !isGenerating,
                   ),
                   if (isGenerating)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 24),
-                      child: Center(child: CircularProgressIndicator(color: Color(0xFF10B981))),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 24),
+                      child: Center(child: CircularProgressIndicator(color: colorScheme.primary)),
                     ),
                 ],
               ),
@@ -112,12 +109,12 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                 if (!isGenerating)
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: _textSecondary)),
+                    child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ),
                 if (!isGenerating)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: colorScheme.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -135,12 +132,15 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                         setState(() => isGenerating = false);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
+                            SnackBar(
+                              content: Text('Error: $e', style: TextStyle(color: colorScheme.onError)),
+                              backgroundColor: colorScheme.error,
+                            ),
                           );
                         }
                       }
                     },
-                    child: const Text('Generate', style: TextStyle(color: Colors.white)),
+                    child: Text('Generate', style: TextStyle(color: colorScheme.onPrimary)),
                   ),
               ],
             );
@@ -152,39 +152,45 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _textPrimary),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        actions: const [
+          ThemeToggleButton(),
+        ],
+        title: Text(
           'My Checklists',
-          style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showChecklistDialog(context),
-        backgroundColor: const Color(0xFF10B981),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: colorScheme.primary,
+        icon: Icon(Icons.add, color: colorScheme.onPrimary),
+        label: Text('New', style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: _errorColor)),
+                      Text(_error!, style: TextStyle(color: colorScheme.error)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadChecklists,
-                        style: ElevatedButton.styleFrom(backgroundColor: _surfaceColor),
-                        child: const Text('Retry', style: TextStyle(color: _textPrimary)),
+                        style: ElevatedButton.styleFrom(backgroundColor: colorScheme.surface),
+                        child: Text('Retry', style: TextStyle(color: colorScheme.onSurface)),
                       )
                     ],
                   ),
@@ -194,7 +200,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                       child: Text(
                         'No checklists found.\nTap "New" to generate one.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: _textSecondary.withValues(alpha: 0.7), fontSize: 16),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 16),
                       ),
                     )
                   : ListView.builder(
@@ -207,11 +213,11 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                         final totalCount = items.length;
                         
                         return Card(
-                          color: _surfaceColor,
+                          color: colorScheme.surface,
                           margin: const EdgeInsets.only(bottom: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                            side: BorderSide(color: colorScheme.outline),
                           ),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
@@ -223,12 +229,12 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                      color: colorScheme.primary.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.checklist_rounded,
-                                      color: Color(0xFF10B981),
+                                      color: colorScheme.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -238,8 +244,8 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                                       children: [
                                         Text(
                                           checklist['title'] ?? 'Untitled Checklist',
-                                          style: const TextStyle(
-                                            color: _textPrimary,
+                                          style: TextStyle(
+                                            color: colorScheme.onSurface,
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -249,15 +255,15 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           '$completedCount of $totalCount completed',
-                                          style: const TextStyle(
-                                            color: _textSecondary,
+                                          style: TextStyle(
+                                            color: colorScheme.onSurfaceVariant,
                                             fontSize: 14,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right, color: _textSecondary),
+                                  Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
                                 ],
                               ),
                             ),

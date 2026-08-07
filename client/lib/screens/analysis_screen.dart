@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final String originalText;
@@ -14,21 +15,23 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen> {
   bool _isExplaining = false;
   
-  Color _getColorForCategory(String category) {
+  Color _getColorForCategory(BuildContext context, String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (category.toLowerCase().trim()) {
-      case 'green': return Colors.green[100]!;
-      case 'yellow': return Colors.yellow[100]!;
-      case 'red': return Colors.red[100]!;
-      default: return Colors.grey[200]!;
+      case 'green': return isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green[100]!;
+      case 'yellow': return isDark ? Colors.orange.withValues(alpha: 0.2) : Colors.yellow[100]!;
+      case 'red': return isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red[100]!;
+      default: return isDark ? Colors.grey.withValues(alpha: 0.2) : Colors.grey[200]!;
     }
   }
   
-  Color _getBorderColor(String category) {
+  Color _getBorderColor(BuildContext context, String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (category.toLowerCase().trim()) {
-      case 'green': return Colors.green;
-      case 'yellow': return Colors.orange;
-      case 'red': return Colors.red;
-      default: return Colors.grey;
+      case 'green': return isDark ? Colors.green[400]! : Colors.green;
+      case 'yellow': return isDark ? Colors.orange[400]! : Colors.orange;
+      case 'red': return isDark ? Colors.red[400]! : Colors.red;
+      default: return isDark ? Colors.grey[400]! : Colors.grey;
     }
   }
 
@@ -57,15 +60,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Plain English Explanation', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text('Plain English Explanation', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-                child: Text('"$snippet"', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+                child: Text('"$snippet"', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
               const SizedBox(height: 16),
-              Text(explanation, style: const TextStyle(fontSize: 16, height: 1.5)),
+              Text(explanation, style: TextStyle(fontSize: 16, height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -84,7 +87,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Risk Analysis')),
+      appBar: AppBar(
+        title: const Text('Risk Analysis'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: Stack(
         children: [
           ListView.builder(
@@ -96,9 +104,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: _getBorderColor(item['category']), width: 2),
+                  side: BorderSide(color: _getBorderColor(context, item['category']), width: 2),
                 ),
-                color: _getColorForCategory(item['category']),
+                color: _getColorForCategory(context, item['category']),
                 child: InkWell(
                   onTap: () => _explainSnippet(item['text']),
                   borderRadius: BorderRadius.circular(12),
@@ -111,15 +119,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(item['category'].toUpperCase(), 
-                                style: TextStyle(fontWeight: FontWeight.bold, color: _getBorderColor(item['category']))),
-                            const Icon(Icons.touch_app, size: 16, color: Colors.black54),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: _getBorderColor(context, item['category']))),
+                            Icon(Icons.touch_app, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(item['text'], style: const TextStyle(fontSize: 14)),
+                        Text(item['text'], style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface)),
                         const SizedBox(height: 8),
                         Text('Risk Reason: ${item['reason']}', 
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                       ],
                     ),
                   ),

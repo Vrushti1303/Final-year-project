@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../services/api_service.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -63,7 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
           'time': replyTimeStr,
         });
       });
-    } on RateLimitException catch (e) {
+    } on RateLimitException {
       final errNow = DateTime.now();
       final errTimeStr = '${errNow.hour > 12 ? errNow.hour - 12 : (errNow.hour == 0 ? 12 : errNow.hour)}:${errNow.minute.toString().padLeft(2, '0')} ${errNow.hour >= 12 ? 'PM' : 'AM'}';
       setState(() {
@@ -110,9 +111,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bgColor = Color(0xFF171218);
-    const textPrimary = Color(0xFFF5F5F5);
-    const textSecondary = Color(0xFFB8B8B8);
+    final colorScheme = Theme.of(context).colorScheme;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textPrimary = colorScheme.onSurface;
+    final textSecondary = colorScheme.onSurfaceVariant;
 
     final isMobile = MediaQuery.of(context).size.width < 600;
 
@@ -122,17 +124,20 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: textPrimary),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
           children: [
-            const Text('Legal AI Assistant', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
+            Text('Legal AI Assistant', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
             if (!isMobile)
-              const Text('Ask legal questions, understand property laws...', style: TextStyle(color: textSecondary, fontSize: 12)),
+              Text('Ask legal questions, understand property laws...', style: TextStyle(color: textSecondary, fontSize: 12)),
           ],
         ),
         centerTitle: true,
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -180,12 +185,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyState() {
-    const primaryAccent = Color(0xFF564C63);
-    const textPrimary = Color(0xFFF5F5F5);
-    const textSecondary = Color(0xFFB8B8B8);
-    const surfaceColor = Color(0xFF211A24);
-    const borderColor = Color(0x14FFFFFF);
-    const bgColor = Color(0xFF171218);
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryAccent = colorScheme.primary;
+    final textPrimary = colorScheme.onSurface;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    final surfaceColor = colorScheme.surface;
+    final borderColor = colorScheme.outline;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     final isMobile = MediaQuery.of(context).size.width < 600;
 
@@ -198,11 +204,11 @@ class _ChatScreenState extends State<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
-              const Icon(Icons.balance, size: 64, color: primaryAccent),
+              Icon(Icons.balance, size: 64, color: primaryAccent),
               const SizedBox(height: 24),
-              const Text('How can I help today?', textAlign: TextAlign.center, style: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.w600)),
+              Text('How can I help today?', textAlign: TextAlign.center, style: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const Text('Ask a legal question or select one of the suggested prompts below.', textAlign: TextAlign.center, style: TextStyle(color: textSecondary, fontSize: 16)),
+              Text('Ask a legal question or select one of the suggested prompts below.', textAlign: TextAlign.center, style: TextStyle(color: textSecondary, fontSize: 16)),
               const SizedBox(height: 32),
               
               // Welcome Card
@@ -219,9 +225,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('👋 Welcome to your Legal AI Assistant', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('👋 Welcome to your Legal AI Assistant', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
-                    const Text('I can assist you with property laws, reviewing legal documents, and generating drafts. Here is what I can do:', style: TextStyle(color: textSecondary, fontSize: 14, height: 1.5)),
+                    Text('I can assist you with property laws, reviewing legal documents, and generating drafts. Here is what I can do:', style: TextStyle(color: textSecondary, fontSize: 14, height: 1.5)),
                     const SizedBox(height: 24),
                     Wrap(
                       spacing: 16,
@@ -290,12 +296,13 @@ class _AnimatedMessageBubble extends StatelessWidget {
     final isUser = message['role'] == 'user';
     final isError = message['role'] == 'error';
     
-    const surfaceColor = Color(0xFF211A24);
-    const primaryAccent = Color(0xFF564C63);
-    const textPrimary = Color(0xFFF5F5F5);
-    const textSecondary = Color(0xFFB8B8B8);
-    const borderColor = Color(0x14FFFFFF);
-    const errorColor = Color(0xFFD76C6C);
+    final colorScheme = Theme.of(context).colorScheme;
+    final surfaceColor = colorScheme.surface;
+    final primaryAccent = colorScheme.primary;
+    final textPrimary = colorScheme.onSurface;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    final borderColor = colorScheme.outline;
+    final errorColor = colorScheme.error;
 
     final bgColor = isError ? errorColor.withValues(alpha: 0.1) : (isUser ? primaryAccent : surfaceColor);
     final bColor = isError ? errorColor.withValues(alpha: 0.5) : (isUser ? Colors.transparent : borderColor);
@@ -341,11 +348,11 @@ class _AnimatedMessageBubble extends StatelessWidget {
                 child: MarkdownBody(
                   data: message['text']!,
                   styleSheet: MarkdownStyleSheet(
-                    p: const TextStyle(color: textPrimary, fontSize: 16, height: 1.5),
-                    h1: const TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                    h2: const TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                    h3: const TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                    listBullet: const TextStyle(color: textPrimary),
+                    p: TextStyle(color: textPrimary, fontSize: 16, height: 1.5),
+                    h1: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                    h2: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                    h3: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                    listBullet: TextStyle(color: textPrimary),
                     code: TextStyle(backgroundColor: Colors.black.withValues(alpha: 0.2), color: Colors.blueAccent.shade100),
                     codeblockDecoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.2),
@@ -359,7 +366,7 @@ class _AnimatedMessageBubble extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: Text(
                     message['time'],
-                    style: const TextStyle(color: textSecondary, fontSize: 12),
+                    style: TextStyle(color: textSecondary, fontSize: 12),
                   ),
                 ),
               if (!isUser && message['suggestions'] != null && (message['suggestions'] as List).isNotEmpty)
@@ -395,11 +402,12 @@ class _ChatInputState extends State<_ChatInput> {
 
   @override
   Widget build(BuildContext context) {
-    const surfaceColor = Color(0xFF211A24);
-    const borderColor = Color(0x14FFFFFF);
-    const textPrimary = Color(0xFFF5F5F5);
-    const textSecondary = Color(0xFFB8B8B8);
-    const primaryAccent = Color(0xFF564C63);
+    final colorScheme = Theme.of(context).colorScheme;
+    final surfaceColor = colorScheme.surface;
+    final borderColor = colorScheme.outline;
+    final textPrimary = colorScheme.onSurface;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    final primaryAccent = colorScheme.primary;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: widget.isMobile ? 16 : 32, vertical: 16),
@@ -420,16 +428,16 @@ class _ChatInputState extends State<_ChatInput> {
         children: [
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.attach_file, color: textSecondary),
+            icon: Icon(Icons.attach_file, color: textSecondary),
             onPressed: () {},
           ),
           Expanded(
             child: TextField(
               controller: widget.controller,
-              style: const TextStyle(color: textPrimary, fontSize: 16),
+              style: TextStyle(color: textPrimary, fontSize: 16),
               minLines: 1,
               maxLines: 4,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Ask about property laws, legal clauses, RERA, or request a legal draft...',
                 hintStyle: TextStyle(color: textSecondary),
                 border: InputBorder.none,
@@ -439,7 +447,7 @@ class _ChatInputState extends State<_ChatInput> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.mic, color: textSecondary),
+            icon: Icon(Icons.mic, color: textSecondary),
             onPressed: () {},
           ),
           MouseRegion(
@@ -481,8 +489,9 @@ class _HoverableChipState extends State<_HoverableChip> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryAccent = Color(0xFF564C63);
-    const textPrimary = Color(0xFFF5F5F5);
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryAccent = colorScheme.primary;
+    final textPrimary = colorScheme.onSurface;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -499,7 +508,7 @@ class _HoverableChipState extends State<_HoverableChip> {
           ),
           child: Text(
             widget.label,
-            style: const TextStyle(color: textPrimary, fontSize: 14),
+            style: TextStyle(color: textPrimary, fontSize: 14),
           ),
         ),
       ),
@@ -531,9 +540,10 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
 
   @override
   Widget build(BuildContext context) {
-    const textSecondary = Color(0xFFB8B8B8);
-    const surfaceColor = Color(0xFF211A24);
-    const borderColor = Color(0x14FFFFFF);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    final surfaceColor = colorScheme.surface;
+    final borderColor = colorScheme.outline;
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -548,7 +558,7 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('AI is thinking', style: TextStyle(color: textSecondary, fontSize: 14)),
+            Text('AI is thinking', style: TextStyle(color: textSecondary, fontSize: 14)),
             const SizedBox(width: 8),
             Row(
               children: List.generate(3, (index) {
@@ -561,7 +571,7 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
                       offset: Offset(0, offset),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                        child: Container(width: 4, height: 4, decoration: const BoxDecoration(color: textSecondary, shape: BoxShape.circle)),
+                        child: Container(width: 4, height: 4, decoration: BoxDecoration(color: textSecondary, shape: BoxShape.circle)),
                       ),
                     );
                   },
