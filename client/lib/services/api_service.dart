@@ -46,6 +46,19 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getLegalNews() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/news/legal-updates'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching legal news: $e');
+      return [];
+    }
+  }
+
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');

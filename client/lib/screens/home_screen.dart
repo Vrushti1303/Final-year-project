@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
-import '../providers/theme_provider.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../services/api_service.dart';
 import 'scan_screen.dart';
 import 'chat_screen.dart';
 import 'checklists_list_screen.dart';
@@ -102,7 +103,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final themeMode = ref.watch(themeProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -210,13 +210,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                                 children: [
                                   Expanded(flex: 2, child: _buildRecentDocuments(context)),
                                   const SizedBox(width: 32),
-                                  Expanded(flex: 1, child: Column(
-                                    children: [
-                                      _buildAlertsSection(context, 'Latest Legal Updates', Icons.gavel_rounded),
-                                      const SizedBox(height: 24),
-                                      _buildAlertsSection(context, 'RERA Alerts', Icons.warning_rounded, isWarning: true),
-                                    ],
-                                  )),
+                                  Expanded(flex: 1, child: _buildLiveNewsSection(context)),
                                 ],
                               );
                             } else {
@@ -224,9 +218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                                 children: [
                                   _buildRecentDocuments(context),
                                   const SizedBox(height: 32),
-                                  _buildAlertsSection(context, 'Latest Legal Updates', Icons.gavel_rounded),
-                                  const SizedBox(height: 24),
-                                  _buildAlertsSection(context, 'RERA Alerts', Icons.warning_rounded, isWarning: true),
+                                  _buildLiveNewsSection(context),
                                 ],
                               );
                             }
@@ -335,58 +327,118 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildAlertsSection(BuildContext context, String title, IconData icon, {bool isWarning = false}) {
+  Widget _buildLiveNewsSection(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final color = isWarning ? colorScheme.tertiary : colorScheme.primary;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _HoverCard(
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
+    return FutureBuilder<List<dynamic>>(
+      future: ApiService.getLegalNews(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final articles = snapshot.data ?? [];
+        if (articles.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final displayArticles = articles.take(3).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                Text(
+                  'Latest Legal & RERA News',
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: Icon(icon, color: color),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Icon(Icons.circle, color: colorScheme.primary, size: 8),
+                      const SizedBox(width: 6),
                       Text(
-                        isWarning ? 'New RERA Guidelines' : 'Supreme Court Update',
-                        style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Read the latest changes...',
-                        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+                        'Live',
+                        style: TextStyle(color: colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 16),
+            _HoverCard(
+              onTap: () {},
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displayArticles.length,
+                separatorBuilder: (context, index) => Divider(color: colorScheme.outline, height: 1),
+                itemBuilder: (context, index) {
+                  final item = displayArticles[index];
+                  final String itemTitle = item['title'] ?? 'Legal Update';
+                  final String itemSource = item['source'] ?? 'Legal News';
+                  final String itemLink = item['link'] ?? '';
+                  final bool isWarning = item['isWarning'] ?? (index % 2 == 1);
+                  final IconData icon = isWarning ? Icons.warning_rounded : Icons.gavel_rounded;
+                  final Color iconColor = isWarning ? colorScheme.tertiary : colorScheme.primary;
+
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    onTap: () async {
+                      if (itemLink.isNotEmpty) {
+                        final Uri url = Uri.parse(itemLink);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                    },
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, color: iconColor),
+                    ),
+                    title: Text(
+                      itemTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w500, fontSize: 14),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        '$itemSource • Tap to read',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+                      ),
+                    ),
+                    trailing: Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
