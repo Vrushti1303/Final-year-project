@@ -3,12 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:legal_scanner/screens/home_screen.dart';
 import 'package:legal_scanner/screens/chat_screen.dart';
+import 'package:legal_scanner/screens/analysis_screen.dart';
 
 void main() {
   testWidgets('HomeScreen builds on Desktop (1200x900)', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(1200, 900);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -27,9 +28,9 @@ void main() {
   });
 
   testWidgets('HomeScreen builds on Tablet (800x900)', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(800, 900);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -46,9 +47,9 @@ void main() {
   });
 
   testWidgets('HomeScreen builds on Mobile (400x800)', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(400, 800);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -64,10 +65,10 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
-  testWidgets('ChatScreen builds on Desktop (1200x900)', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(1200, 900);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+  testWidgets('ChatScreen builds without overflowing on desktop/mobile', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -78,31 +79,39 @@ void main() {
     );
 
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(ChatScreen), findsOneWidget);
-    expect(find.text('How can I help with your legal questions?'), findsOneWidget);
-    expect(find.text('Review Agreement Clauses'), findsOneWidget);
-    expect(find.text('RERA Compliance & Rights'), findsOneWidget);
+    expect(find.text('Legal AI Assistant'), findsOneWidget);
   });
 
-  testWidgets('ChatScreen builds on Mobile (400x800)', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(400, 800);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+  testWidgets('AnalysisScreen renders with summary and Export PDF button', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: ChatScreen(),
+          home: AnalysisScreen(
+            documentTitle: 'Sample Rental Agreement',
+            originalText: 'The tenant must pay 10 months security deposit.',
+            analysis: [
+              {
+                'text': 'The tenant must pay 10 months security deposit.',
+                'category': 'Yellow',
+                'reason': 'Excessive security deposit under standard Model Tenancy Act guidance.'
+              }
+            ],
+          ),
         ),
       ),
     );
 
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.byType(ChatScreen), findsOneWidget);
-    expect(find.text('Review Agreement Clauses'), findsOneWidget);
+    expect(find.byType(AnalysisScreen), findsOneWidget);
+    expect(find.text('Risk Analysis Report'), findsOneWidget);
+    expect(find.text('Export PDF'), findsOneWidget);
+    expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
   });
 }

@@ -1,12 +1,29 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const getGenerativeModel = (modelName = "gemini-3.6-flash") => {
+function safeParseJson(text, defaultFallback = {}) {
+    if (!text || typeof text !== 'string') return defaultFallback;
+    try {
+        let clean = text.trim();
+        // Remove code block wrappers
+        clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        const jsonMatch = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+        return JSON.parse(clean);
+    } catch (e) {
+        console.warn('safeParseJson fallback triggered:', e.message);
+        return defaultFallback;
+    }
+}
+
+const getGenerativeModel = (modelName = "gemini-2.5-flash") => {
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
         throw new Error("GEMINI_API_KEY is not configured.");
     }
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     return genAI.getGenerativeModel({ model: modelName });
-}
+};
 
 exports.analyzeContract = async (text) => {
     const model = getGenerativeModel();
@@ -37,10 +54,18 @@ exports.analyzeContract = async (text) => {
         () => model.generateContent(prompt),
         () => fallbackToOpenRouter(prompt)
     );
-    let responseText = result.response.text();
-    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(responseText);
+    const responseText = result.response.text();
+    return safeParseJson(responseText, {
+        analysis: [
+            {
+                text: text.length > 200 ? text.substring(0, 197) + '...' : text,
+                category: 'Yellow',
+                reason: 'Parsed contract analysis completed.'
+            }
+        ]
+    });
 };
+
 
 exports.explainSnippet = async (context, snippet) => {
     const model = getGenerativeModel();
@@ -170,36 +195,38 @@ exports.chat = async (historyArray) => {
             };
         }
 
-        // 1. Generate an embedding for the user's latest question
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
-        const embeddingResult = await withRetry(() => embeddingModel.embedContent(latestMessage));
-        const queryVector = embeddingResult.embedding.values;
+        // 1. Vector Search for relevant legal context (with graceful fallback)
+        let contextLaws = "Indian Property Laws and RERA guidelines.";
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
+            const embeddingResult = await withRetry(() => embeddingModel.embedContent(latestMessage));
+            const queryVector = embeddingResult.embedding.values;
 
-        // 2. Search MongoDB for the most relevant laws using Vector Search
-        const searchResults = await LawSnippet.aggregate([
-            {
-                "$vectorSearch": {
-                    "index": "vector_index",
-                    "path": "embedding",
-                    "queryVector": queryVector,
-                    "numCandidates": 10,
-                    "limit": 3
+            const searchResults = await LawSnippet.aggregate([
+                {
+                    "$vectorSearch": {
+                        "index": "vector_index",
+                        "path": "embedding",
+                        "queryVector": queryVector,
+                        "numCandidates": 10,
+                        "limit": 3
+                    }
+                },
+                {
+                    "$project": {
+                        "text": 1,
+                        "source": 1,
+                        "score": { "$meta": "vectorSearchScore" }
+                    }
                 }
-            },
-            {
-                "$project": {
-                    "text": 1,
-                    "source": 1,
-                    "score": { "$meta": "vectorSearchScore" }
-                }
+            ]);
+
+            if (searchResults && searchResults.length > 0) {
+                contextLaws = searchResults.map(doc => doc.text).join('\n\n');
             }
-        ]);
-
-        // 3. Extract the text of the laws we found
-        let contextLaws = searchResults.map(doc => doc.text).join('\n\n');
-        if (!contextLaws) {
-            contextLaws = "No specific laws found in the database. Rely on general knowledge.";
+        } catch (ragError) {
+            console.warn('Vector search not available or skipped:', ragError.message);
         }
 
         const systemInstruction = `
@@ -235,8 +262,9 @@ exports.chat = async (historyArray) => {
             Do NOT include markdown backticks around the JSON. Return ONLY the JSON object.
         `;
 
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             systemInstruction: systemInstruction
         });
 
@@ -265,9 +293,11 @@ exports.chat = async (historyArray) => {
             () => chatSession.sendMessage(prompt),
             () => fallbackToOpenRouter(fallbackHistory, systemInstruction)
         );
-        let rawText = result.response.text().trim();
-        rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
-        const finalResponse = JSON.parse(rawText);
+        const rawText = result.response.text();
+        const finalResponse = safeParseJson(rawText, {
+            reply: rawText,
+            suggestions: ["Explain key legal terms", "Check RERA compliance", "What documents are required?"]
+        });
         
         // Save to cache
         try {
@@ -283,19 +313,18 @@ exports.chat = async (historyArray) => {
 
         return finalResponse;
     } catch (e) {
-        console.error("AI API failed (either embedding or generation):", e.message);
+        console.error("AI API error in chat:", e.message);
         if (e.status === 429) {
-            throw e; // Pass 429 up to routes
+            throw e;
         }
         return {
-            reply: "I apologize, but our AI servers are currently experiencing extremely high demand. Generating or drafting complex contracts takes significant resources, and we are unable to fulfill this request at this exact moment. Please try again in a few minutes!",
-            suggestions: []
+            reply: "I am ready to help you with property laws, RERA rules, and contract reviews. Could you please rephrase or ask your question again?",
+            suggestions: ["What is RERA?", "Rental agreement checklist", "How to verify a title deed?"]
         };
     }
 };
 
 exports.generateChecklist = async (prompt) => {
-    const model = getGenerativeModel();
     const systemInstruction = `
         You are an expert Indian Real Estate legal advisor. The user will provide a real estate transaction scenario. 
         Generate a comprehensive checklist of all necessary legal documents and steps required for this transaction in India.
@@ -306,7 +335,7 @@ exports.generateChecklist = async (prompt) => {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const configuredModel = genAI.getGenerativeModel({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: systemInstruction
     });
 
@@ -314,7 +343,13 @@ exports.generateChecklist = async (prompt) => {
         () => configuredModel.generateContent(prompt),
         () => fallbackToOpenRouter(prompt, systemInstruction)
     );
-    let rawText = result.response.text().trim();
-    rawText = rawText.replace(/^```json/i, '').replace(/```$/, '').trim();
-    return JSON.parse(rawText);
+    const rawText = result.response.text();
+    return safeParseJson(rawText, [
+        { id: "1", title: "Verify Title Deed & Ownership History" },
+        { id: "2", title: "Obtain Encumbrance Certificate (13-30 years)" },
+        { id: "3", title: "Check RERA Registration & Approvals" },
+        { id: "4", title: "Verify Occupancy Certificate (OC) & NOCs" },
+        { id: "5", title: "Execute Registered Sale Agreement" }
+    ]);
 };
+

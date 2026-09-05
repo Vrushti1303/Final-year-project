@@ -270,6 +270,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         AnalysisScreen(
                           originalText: _recentDocs.first.originalText,
                           analysis: _recentDocs.first.analysis,
+                          documentTitle: _recentDocs.first.title,
                         ),
                       );
                     }
@@ -1276,6 +1277,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         AnalysisScreen(
                           originalText: doc.originalText,
                           analysis: doc.analysis,
+                          documentTitle: doc.title,
                         ),
                       );
                     } else {

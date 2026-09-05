@@ -7,7 +7,7 @@ async function run() {
         
         const systemInstruction = "Return valid JSON object: {\"reply\":\"hi\", \"suggestions\":[]}";
         const model = genAI.getGenerativeModel({
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             systemInstruction: systemInstruction
         });
 

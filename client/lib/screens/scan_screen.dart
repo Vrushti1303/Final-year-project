@@ -111,7 +111,7 @@ class _ScanScreenState extends State<ScanScreen> {
           throw Exception('No readable text found in this PDF.');
         }
 
-        await _analyzeText(extractedText);
+        await _analyzeText(extractedText, title: result.files.single.name);
       }
     } catch (e) {
       if (!mounted) return;
@@ -125,14 +125,14 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<void> _analyzeText(String text) async {
+  Future<void> _analyzeText(String text, {String? title}) async {
     setState(() {
       _isProcessing = true;
       _statusMessage = 'Analyzing for risks...';
     });
 
     try {
-      final analysisResult = await ApiService.scanDocument(text);
+      final analysisResult = await ApiService.scanDocument(text, title: title);
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -140,7 +140,8 @@ class _ScanScreenState extends State<ScanScreen> {
         MaterialPageRoute(
           builder: (_) => AnalysisScreen(
             originalText: text,
-            analysis: analysisResult['analysis'],
+            analysis: analysisResult['analysis'] ?? [],
+            documentTitle: title ?? 'Scanned Property Agreement',
           ),
         ),
       );
