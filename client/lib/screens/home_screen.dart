@@ -1529,7 +1529,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
+          margin: EdgeInsets.only(top: _isHovered ? 0 : 4, bottom: _isHovered ? 4 : 0),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: widget.isDark

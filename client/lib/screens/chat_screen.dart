@@ -599,7 +599,7 @@ class _PromptCardState extends State<_PromptCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
+          margin: EdgeInsets.only(top: _isHovered ? 0 : 3, bottom: _isHovered ? 3 : 0),
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: widget.isDark

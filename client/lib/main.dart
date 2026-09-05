@@ -77,7 +77,8 @@ class LegalScannerApp extends ConsumerWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2563EB),
             foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
+            minimumSize: const Size(0, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -89,7 +90,8 @@ class LegalScannerApp extends ConsumerWidget {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF2563EB),
-            minimumSize: const Size(double.infinity, 50),
+            minimumSize: const Size(0, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             side: const BorderSide(color: Color(0xFF2563EB)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -163,7 +165,8 @@ class LegalScannerApp extends ConsumerWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3B82F6),
             foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
+            minimumSize: const Size(0, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -175,7 +178,8 @@ class LegalScannerApp extends ConsumerWidget {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF3B82F6),
-            minimumSize: const Size(double.infinity, 50),
+            minimumSize: const Size(0, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             side: const BorderSide(color: Color(0xFF3B82F6)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
