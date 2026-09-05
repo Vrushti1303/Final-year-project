@@ -47,12 +47,16 @@ class _ScanScreenState extends State<ScanScreen> {
           textRecognizer.close();
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera OCR is supported on mobile devices. Please paste document text below for Web analysis.')),
-        );
-        setState(() {
-          _isProcessing = false;
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Camera OCR is supported on mobile devices. Please paste document text below for Web analysis.')),
+          );
+        }
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
         return;
       }
 

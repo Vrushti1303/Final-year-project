@@ -74,13 +74,13 @@ class _ChatScreenState extends State<ChatScreen> {
           'time': errTimeStr,
         });
       });
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Rate limit reached. Please wait a moment.'),
             backgroundColor: Colors.orange.shade800,
             duration: const Duration(seconds: 4),
-          )
+          ),
         );
       }
     } catch (e) {
@@ -189,97 +189,182 @@ class _ChatScreenState extends State<ChatScreen> {
     final primaryAccent = colorScheme.primary;
     final textPrimary = colorScheme.onSurface;
     final textSecondary = colorScheme.onSurfaceVariant;
-    final surfaceColor = colorScheme.surface;
-    final borderColor = colorScheme.outline;
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final promptCards = [
+      {
+        'icon': Icons.find_in_page_outlined,
+        'color': const Color(0xFF3B82F6),
+        'title': 'Review Agreement Clauses',
+        'desc': 'Scan lease or sale deed terms for hidden liabilities and risky clauses',
+        'prompt': 'Can you review the key clauses in a residential property agreement and highlight standard red flags?',
+      },
+      {
+        'icon': Icons.shield_outlined,
+        'color': const Color(0xFFF59E0B),
+        'title': 'RERA Compliance & Rights',
+        'desc': 'Understand builder handover delays, interest compensation, and escrow norms',
+        'prompt': 'What are my legal rights and compensation rules under RERA if a builder delays possession?',
+      },
+      {
+        'icon': Icons.edit_note_rounded,
+        'color': const Color(0xFF10B981),
+        'title': 'Draft Legal Agreement',
+        'desc': 'Generate standard residential lease, sale agreement, or NOC templates',
+        'prompt': 'Please draft a standard 11-month residential rental agreement with essential tenant and landlord clauses.',
+      },
+      {
+        'icon': Icons.account_balance_outlined,
+        'color': const Color(0xFF8B5CF6),
+        'title': 'Stamp Duty & Registration',
+        'desc': 'Mandatory document checklist, registration procedures, and fee guidelines',
+        'prompt': 'What documents and procedures are mandatory for property registration and stamp duty payment in India?',
+      },
+    ];
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 24),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 820),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
-              Icon(Icons.balance, size: 64, color: primaryAccent),
-              const SizedBox(height: 24),
-              Text('How can I help today?', textAlign: TextAlign.center, style: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Text('Ask a legal question or select one of the suggested prompts below.', textAlign: TextAlign.center, style: TextStyle(color: textSecondary, fontSize: 16)),
-              const SizedBox(height: 32),
-              
-              // Welcome Card
+              const SizedBox(height: 12),
+
+              // Legal Scales Emblem
               Container(
-                padding: const EdgeInsets.all(28),
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
-                  color: surfaceColor,
+                  color: primaryAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
-                  ],
+                  border: Border.all(color: primaryAccent.withValues(alpha: 0.25)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Icon(Icons.balance_rounded, size: 32, color: primaryAccent),
+              ),
+              const SizedBox(height: 20),
+
+              // Single Focused Greeting
+              Text(
+                'How can I help with your legal questions?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: isMobile ? 22 : 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Ask any question about Indian property laws, or select a guided prompt below.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // 2x2 Interactive Prompt Grid
+              if (isMobile)
+                Column(
+                  children: promptCards.map((p) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _PromptCard(
+                        icon: p['icon'] as IconData,
+                        accentColor: p['color'] as Color,
+                        title: p['title'] as String,
+                        description: p['desc'] as String,
+                        onTap: () => _sendMessage(textOverride: p['prompt'] as String),
+                        isDark: isDark,
+                      ),
+                    );
+                  }).toList(),
+                )
+              else
+                Column(
                   children: [
-                    Text('👋 Welcome to your Legal AI Assistant', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Text('I can assist you with property laws, reviewing legal documents, and generating drafts. Here is what I can do:', style: TextStyle(color: textSecondary, fontSize: 14, height: 1.5)),
-                    const SizedBox(height: 24),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildCapability(Icons.edit_document, 'Draft legal agreements', bgColor, borderColor, primaryAccent, textPrimary),
-                        _buildCapability(Icons.gavel, 'Explain RERA and property laws', bgColor, borderColor, primaryAccent, textPrimary),
-                        _buildCapability(Icons.plagiarism_outlined, 'Review clauses', bgColor, borderColor, primaryAccent, textPrimary),
-                        _buildCapability(Icons.lightbulb_outline, 'Provide legal guidance', bgColor, borderColor, primaryAccent, textPrimary),
-                        _buildCapability(Icons.description_outlined, 'Generate contract templates', bgColor, borderColor, primaryAccent, textPrimary),
+                        Expanded(
+                          child: _PromptCard(
+                            icon: promptCards[0]['icon'] as IconData,
+                            accentColor: promptCards[0]['color'] as Color,
+                            title: promptCards[0]['title'] as String,
+                            description: promptCards[0]['desc'] as String,
+                            onTap: () => _sendMessage(textOverride: promptCards[0]['prompt'] as String),
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _PromptCard(
+                            icon: promptCards[1]['icon'] as IconData,
+                            accentColor: promptCards[1]['color'] as Color,
+                            title: promptCards[1]['title'] as String,
+                            description: promptCards[1]['desc'] as String,
+                            onTap: () => _sendMessage(textOverride: promptCards[1]['prompt'] as String),
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _PromptCard(
+                            icon: promptCards[2]['icon'] as IconData,
+                            accentColor: promptCards[2]['color'] as Color,
+                            title: promptCards[2]['title'] as String,
+                            description: promptCards[2]['desc'] as String,
+                            onTap: () => _sendMessage(textOverride: promptCards[2]['prompt'] as String),
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _PromptCard(
+                            icon: promptCards[3]['icon'] as IconData,
+                            accentColor: promptCards[3]['color'] as Color,
+                            title: promptCards[3]['title'] as String,
+                            description: promptCards[3]['desc'] as String,
+                            onTap: () => _sendMessage(textOverride: promptCards[3]['prompt'] as String),
+                            isDark: isDark,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 40),
-              
+
+              const SizedBox(height: 28),
+
+              // Quick question chips
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 10,
+                runSpacing: 10,
                 alignment: WrapAlignment.center,
                 children: [
-                  'Draft an Agreement to Sell',
-                  'Explain RERA Rights',
-                  'Draft a Rent Agreement',
-                  'Property Registration Guide',
-                  'Stamp Duty Information',
-                  'Review Contract Clauses',
-                ].map((s) => _HoverableChip(label: s, onTap: () => _sendMessage(textOverride: s))).toList(),
+                  'Delay penalty interest rate',
+                  'Carpet vs super built-up area',
+                  'Security deposit refund rules',
+                  '70% builder escrow rule',
+                ].map((s) => _HoverableChip(
+                  label: s,
+                  onTap: () => _sendMessage(textOverride: 'Explain: $s under Indian property law'),
+                )).toList(),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildCapability(IconData icon, String title, Color bgColor, Color borderColor, Color primaryAccent, Color textPrimary) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: primaryAccent, size: 24),
-          const SizedBox(width: 16),
-          Expanded(child: Text(title, style: TextStyle(color: textPrimary, fontSize: 14))),
-        ],
       ),
     );
   }
@@ -403,72 +488,185 @@ class _ChatInputState extends State<_ChatInput> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = colorScheme.surface;
-    final borderColor = colorScheme.outline;
     final textPrimary = colorScheme.onSurface;
     final textSecondary = colorScheme.onSurfaceVariant;
     final primaryAccent = colorScheme.primary;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: widget.isMobile ? 16 : 32, vertical: 16),
+      margin: EdgeInsets.symmetric(horizontal: widget.isMobile ? 16 : 32, vertical: 14),
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFCBD5E1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(Icons.attach_file, color: textSecondary),
-            onPressed: () {},
-          ),
+          Icon(Icons.chat_bubble_outline_rounded, color: textSecondary.withValues(alpha: 0.7), size: 18),
+          const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: widget.controller,
-              style: TextStyle(color: textPrimary, fontSize: 16),
+              style: TextStyle(color: textPrimary, fontSize: 14),
               minLines: 1,
               maxLines: 4,
               decoration: InputDecoration(
                 hintText: 'Ask about property laws, legal clauses, RERA, or request a legal draft...',
-                hintStyle: TextStyle(color: textSecondary),
+                hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.7), fontSize: 14),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onSubmitted: (_) => widget.onSend(),
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.mic, color: textSecondary),
-            onPressed: () {},
-          ),
+          const SizedBox(width: 8),
           MouseRegion(
             onEnter: (_) => setState(() => _isHovered = true),
             onExit: (_) => setState(() => _isHovered = false),
             child: GestureDetector(
               onTap: widget.onSend,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.only(right: 8),
-                width: 44,
-                height: 44,
+                duration: const Duration(milliseconds: 200),
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: _isHovered ? primaryAccent.withValues(alpha: 0.8) : primaryAccent,
-                  borderRadius: BorderRadius.circular(14),
+                  color: _isHovered ? primaryAccent.withValues(alpha: 0.85) : primaryAccent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.send, color: Colors.white, size: 20),
+                child: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 20),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PromptCard extends StatefulWidget {
+  final IconData icon;
+  final Color accentColor;
+  final String title;
+  final String description;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _PromptCard({
+    required this.icon,
+    required this.accentColor,
+    required this.title,
+    required this.description,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  State<_PromptCard> createState() => _PromptCardState();
+}
+
+class _PromptCardState extends State<_PromptCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: widget.isDark
+                ? (_isHovered ? const Color(0xFF243044) : const Color(0xFF1E293B))
+                : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered
+                  ? widget.accentColor.withValues(alpha: 0.5)
+                  : (widget.isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08)),
+              width: _isHovered ? 1.2 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: _isHovered ? (widget.isDark ? 0.25 : 0.06) : (widget.isDark ? 0.12 : 0.02)),
+                blurRadius: _isHovered ? 12 : 6,
+                offset: Offset(0, _isHovered ? 4 : 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: widget.accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(widget.icon, size: 20, color: widget.accentColor),
+                  ),
+                  AnimatedSlide(
+                    offset: _isHovered ? const Offset(0.2, 0) : Offset.zero,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: _isHovered ? widget.accentColor : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.description,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

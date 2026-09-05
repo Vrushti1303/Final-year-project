@@ -1,2 +1,21 @@
+# Dependencies & Environment
 node_modules/
+**/node_modules/
 .env
+**/.env
+.env.*
+
+# OS & IDE
+.DS_Store
+**/.DS_Store
+.idea/
+*.iml
+
+# Flutter / Dart build files
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins-dependencies
+build/
+**/build/
+.pub/
+.pub-cache/

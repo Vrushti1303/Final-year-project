@@ -16,11 +16,18 @@ class ApiService {
   }
 
 
-  static Future<Map<String, dynamic>> scanDocument(String text) async {
+  static Future<Map<String, dynamic>> scanDocument(String text, {String? title}) async {
+    final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/scan'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'text': text}),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'text': text,
+        if (title != null && title.isNotEmpty) 'title': title,
+      }),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -28,6 +35,26 @@ class ApiService {
       throw RateLimitException('Rate limit reached. Please try again later.');
     } else {
       throw Exception('Failed to analyze document');
+    }
+  }
+
+  static Future<List<dynamic>> fetchRecentDocuments() async {
+    try {
+      final token = await _getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/documents'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching documents: $e');
+      return [];
     }
   }
 
