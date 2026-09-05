@@ -7,8 +7,8 @@ import '../services/api_service.dart';
 import 'scan_screen.dart';
 import 'chat_screen.dart';
 import 'checklists_list_screen.dart';
-import 'checklist_screen.dart';
 import 'analysis_screen.dart';
+import 'stamp_duty_calculator_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -154,165 +154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
-  void _showNotificationPanel() {
-    final colorScheme = Theme.of(context).colorScheme;
 
-    final reraAlert = _legalNews.firstWhere(
-      (n) => (n['isWarning'] == true || (n['title'] ?? '').toString().toLowerCase().contains('rera')),
-      orElse: () => null,
-    );
-
-    int totalTasks = 0;
-    int completedTasks = 0;
-    for (final cl in _checklists) {
-      final items = (cl['items'] as List<dynamic>?) ?? [];
-      totalTasks += items.length;
-      completedTasks += items.where((it) => it['isCompleted'] == true).length;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Notifications & Alerts',
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 1. Live RERA Regulatory Alert
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.tertiary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.warning_amber_rounded, color: colorScheme.tertiary, size: 22),
-                ),
-                title: Text(
-                  reraAlert != null ? 'RERA Regulatory Alert' : 'RERA Compliance Mandate',
-                  style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                subtitle: Text(
-                  reraAlert != null ? (reraAlert['title'] ?? '') : 'Mandatory 70% builder escrow accounting enforcement active.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
-                ),
-                trailing: Text(
-                  reraAlert != null ? _formatRelativeTime(reraAlert['pubDate']) : 'Today',
-                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-                  if (reraAlert != null && reraAlert['link'] != null && reraAlert['link'].isNotEmpty) {
-                    final Uri url = Uri.parse(reraAlert['link']);
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  }
-                },
-              ),
-              const Divider(height: 20),
-
-              // 2. Recent Document Analysis Status (Real DB)
-              if (_recentDocs.isNotEmpty) ...[
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _recentDocs.first.riskColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(_recentDocs.first.riskIcon, color: _recentDocs.first.riskColor, size: 22),
-                  ),
-                  title: Text(
-                    'Analysis Ready: ${_recentDocs.first.title}',
-                    style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    '${_recentDocs.first.riskLabel} • Tap to view clauses and plain English explanations.',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
-                  ),
-                  trailing: Text(
-                    _recentDocs.first.dateText.replaceAll('Scanned ', ''),
-                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    if (_recentDocs.first.analysis.isNotEmpty && _recentDocs.first.originalText.isNotEmpty) {
-                      _navigateTo(
-                        AnalysisScreen(
-                          originalText: _recentDocs.first.originalText,
-                          analysis: _recentDocs.first.analysis,
-                          documentTitle: _recentDocs.first.title,
-                        ),
-                      );
-                    }
-                  },
-                ),
-                const Divider(height: 20),
-              ],
-
-              // 3. Checklist Progress Status (Real DB)
-              if (_checklists.isNotEmpty) ...[
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.task_alt_rounded, color: Color(0xFF10B981), size: 22),
-                  ),
-                  title: Text(
-                    'Checklist Tracker: ${_checklists.first['title']}',
-                    style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    '$completedTasks of $totalTasks tasks verified across ${_checklists.length} active transaction guides.',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
-                  ),
-                  trailing: const Text('In progress', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _navigateTo(ChecklistScreen(type: _checklists.first['type']));
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   void _navigateTo(Widget screen) {
     Navigator.push(
@@ -617,35 +459,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const ThemeToggleButton(),
-                      const SizedBox(width: 4),
-
-                      // Notification Bell with Badge
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none_rounded, size: 22),
-                            onPressed: _showNotificationPanel,
-                            tooltip: 'Alerts & Notifications',
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: colorScheme.tertiary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(width: 8),
 
                       // User Profile Avatar with Hover Effect
@@ -765,11 +578,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             double checklistProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
 
             final String checklistBadge = checklistCount == 0
-                ? '3 Active Checklists' // Initial baseline before first load
+                ? '0 Active Checklists'
                 : '$checklistCount Active ${checklistCount == 1 ? 'Checklist' : 'Checklists'}';
 
             final String checklistDesc = totalTasks == 0
-                ? (checklistCount == 0 ? '0 of 26 tasks completed across 3 guides' : '0 tasks • Tap to generate guides')
+                ? (checklistCount == 0 ? '0 tasks • Tap to generate property guides' : '0 tasks completed • Tap to view guides')
                 : '$completedTasks of $totalTasks tasks completed across $checklistCount ${checklistCount == 1 ? 'guide' : 'guides'}';
 
             final cards = [
@@ -800,21 +613,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 progress: checklistProgress,
                 onTap: () => _navigateTo(const ChecklistsListScreen()),
               ),
+              _QuickActionItem(
+                title: 'Stamp Duty Calculator',
+                description: 'Calculate stamp duty & registration charges',
+                ctaText: 'Explore →',
+                icon: Icons.calculate_rounded,
+                accentColor: const Color(0xFF8B5CF6), // Purple / Violet
+                badgeText: 'New',
+                onTap: () => _navigateTo(const StampDutyCalculatorScreen()),
+              ),
             ];
 
             if (isMultiCol) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: cards.map((item) {
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: item == cards.last ? 0 : 16),
-                      child: _QuickActionCard(item: item, isDark: isDark),
-                    ),
-                  );
-                }).toList(),
+              // 2x2 Grid Layout for Desktop & Tablet
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
+                    ],
+                  ),
+                ],
               );
             } else {
+              // Single column for mobile screens
               return Column(
                 children: cards.map((item) {
                   return Padding(
@@ -1696,12 +1530,12 @@ class _QuickActionCardState extends State<_QuickActionCard> {
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
           transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: widget.isDark
                 ? (_isHovered ? const Color(0xFF263549) : const Color(0xFF1E293B))
                 : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: _isHovered
                   ? widget.item.accentColor.withValues(alpha: 0.5)
@@ -1711,8 +1545,8 @@ class _QuickActionCardState extends State<_QuickActionCard> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: _isHovered ? (widget.isDark ? 0.28 : 0.06) : (widget.isDark ? 0.18 : 0.02)),
-                blurRadius: _isHovered ? 12 : 6,
-                offset: Offset(0, _isHovered ? 4 : 2),
+                blurRadius: _isHovered ? 10 : 4,
+                offset: Offset(0, _isHovered ? 3 : 2),
               ),
             ],
           ),
@@ -1722,29 +1556,29 @@ class _QuickActionCardState extends State<_QuickActionCard> {
               // Top Row: Icon on left, optional Badge on right
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   AnimatedScale(
                     scale: _isHovered ? 1.05 : 1.0,
                     duration: const Duration(milliseconds: 200),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: widget.item.accentColor.withValues(alpha: _isHovered ? 0.18 : 0.12),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(9),
                         border: Border.all(
                           color: widget.item.accentColor.withValues(alpha: _isHovered ? 0.35 : 0.2),
                         ),
                       ),
-                      child: Icon(widget.item.icon, color: widget.item.accentColor, size: 24),
+                      child: Icon(widget.item.icon, color: widget.item.accentColor, size: 19),
                     ),
                   ),
                   if (widget.item.badgeText != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: widget.item.accentColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: widget.item.accentColor.withValues(alpha: 0.25),
                         ),
@@ -1753,65 +1587,63 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 6,
-                            height: 6,
+                            width: 5,
+                            height: 5,
                             decoration: BoxDecoration(
                               color: widget.item.accentColor,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 4),
                           Text(
                             widget.item.badgeText!,
                             style: TextStyle(
                               color: widget.item.accentColor,
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                    )
-                  else
-                    const SizedBox(height: 26),
+                    ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
 
               // Title
               Text(
                 widget.item.title,
                 style: TextStyle(
                   color: colorScheme.onSurface,
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
 
               // Description with consistent fixed height for perfect CTA baseline alignment
               SizedBox(
-                height: 38,
+                height: 32,
                 child: Text(
                   widget.item.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                    height: 1.4,
+                    fontSize: 12,
+                    height: 1.3,
                   ),
                 ),
               ),
 
-              // Optional Progress Bar (consistent 16px section for all cards)
+              // Optional Progress Bar (consistent section for all cards)
               if (widget.item.showProgress) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
                   child: Container(
-                    height: 4,
+                    height: 3,
                     width: double.infinity,
                     color: widget.item.accentColor.withValues(alpha: 0.15),
                     child: FractionallySizedBox(
@@ -1824,10 +1656,10 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                   ),
                 ),
               ] else ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 9),
               ],
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // CTA link
               Row(
@@ -1837,7 +1669,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                     'Explore',
                     style: TextStyle(
                       color: _isHovered ? widget.item.accentColor : widget.item.accentColor.withValues(alpha: 0.9),
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1848,7 +1680,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                     child: Icon(
                       Icons.arrow_forward_rounded,
                       color: _isHovered ? widget.item.accentColor : widget.item.accentColor.withValues(alpha: 0.9),
-                      size: 14,
+                      size: 13,
                     ),
                   ),
                 ],

@@ -8,6 +8,7 @@ const checklistRoutes = require('./routes/checklistRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const authRoutes = require('./routes/authRoutes');
 const newsRoutes = require('./routes/newsRoutes');
+const stampDutyRoutes = require('./routes/stampDutyRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use('/api', checklistRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api', stampDutyRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

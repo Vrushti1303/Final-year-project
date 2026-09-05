@@ -6,6 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static String get baseUrl {
+    const String envApiUrl = String.fromEnvironment('API_URL');
+    if (envApiUrl.isNotEmpty) {
+      return envApiUrl;
+    }
+    
     if (kIsWeb) {
       return 'http://localhost:3000/api';
     }
@@ -269,6 +274,48 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to fetch profile');
+    }
+  }
+
+  // Stamp Duty DB methods
+  static Future<Map<String, dynamic>> saveStampDutyCalculation(Map<String, dynamic> data) async {
+    try {
+      final token = await _getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/stamp-duty'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {};
+    } catch (e) {
+      debugPrint('Error saving stamp duty calculation to DB: $e');
+      return {};
+    }
+  }
+
+  static Future<List<dynamic>> fetchStampDutyHistory() async {
+    try {
+      final token = await _getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/stamp-duty'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching stamp duty history: $e');
+      return [];
     }
   }
 }

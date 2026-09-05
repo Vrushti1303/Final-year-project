@@ -1,0 +1,40 @@
+name: Deploy Flutter Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - Jiya
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # We need these permissions to deploy to GitHub Pages
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: flutter pub get
+
+      - name: Build Web App
+        working-directory: ./client
+        # We pass the API_URL from GitHub Secrets to the build
+        run: flutter build web --release --dart-define=API_URL=${{ secrets.API_URL }} --base-href="/Final-year-project/"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./client/build/web
