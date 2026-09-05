@@ -1,5 +1,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pdfParse = require('pdf-parse');
+const mongoose = require('mongoose');
+const LawSnippet = require('../models/LawSnippet');
+const ChatCache = require('../models/ChatCache');
 
 function safeParseJson(text, defaultFallback = {}) {
     if (!text || typeof text !== 'string') return defaultFallback;
@@ -28,6 +31,124 @@ function safeParseJson(text, defaultFallback = {}) {
         }
         return defaultFallback;
     }
+}
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function normalizeQuery(q) {
+    if (!q || typeof q !== 'string') return '';
+    return q.trim().toLowerCase().replace(/[?!.,;:'"()]/g, '').replace(/\s+/g, ' ');
+}
+
+async function fallbackToOpenRouter(prompt, systemInstruction = null, base64Data = null, mimeType = null) {
+    if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY is not configured.');
+    }
+    
+    let messages = [];
+    if (systemInstruction) {
+        messages.push({ role: "system", content: systemInstruction });
+    }
+
+    if (base64Data) {
+        const imageMime = mimeType === 'application/pdf' ? 'image/jpeg' : (mimeType || 'image/jpeg');
+        const imagesList = Array.isArray(base64Data) ? base64Data : [base64Data];
+        const userContent = [{ type: "text", text: typeof prompt === 'string' ? prompt : "Analyze this property document." }];
+        
+        for (const imgStr of imagesList) {
+            userContent.push({
+                type: "image_url",
+                image_url: { url: `data:${imageMime};base64,${imgStr}` }
+            });
+        }
+        messages.push({ role: "user", content: userContent });
+    } else if (Array.isArray(prompt)) {
+        const compactHistory = prompt.length > 8 ? prompt.slice(-8) : prompt;
+        messages = messages.concat(compactHistory.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.text || ''
+        })));
+    } else {
+        messages.push({ role: "user", content: prompt });
+    }
+
+    const candidateModels = base64Data 
+        ? ["openai/gpt-4o-mini", "google/gemini-2.5-flash", "meta-llama/llama-3.3-70b-instruct"]
+        : [
+            "openai/gpt-4o-mini",
+            "deepseek/deepseek-chat",
+            "meta-llama/llama-3.3-70b-instruct",
+            "mistralai/mistral-small-24b-instruct-2501"
+        ];
+
+    let lastError = null;
+
+    for (const modelName of candidateModels) {
+        try {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "LawBuddy",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: modelName,
+                    max_tokens: 2500,
+                    messages: messages
+                })
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                console.warn(`Model ${modelName} failed (${response.status}), trying next candidate...`);
+                lastError = new Error(`Status ${response.status}: ${errText}`);
+                continue;
+            }
+
+            const data = await response.json();
+            const resultText = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+            if (resultText && resultText.trim().length > 0) {
+                return {
+                    response: {
+                        text: () => resultText
+                    }
+                };
+            }
+        } catch (modelErr) {
+            console.warn(`Error calling model ${modelName}:`, modelErr.message);
+            lastError = modelErr;
+        }
+    }
+
+    throw lastError || new Error('All OpenRouter candidate models failed');
+}
+
+async function withRetry(fn, fallbackFn = null, retries = 2, baseDelay = 1000) {
+    let lastError = null;
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+            console.warn(`Primary AI attempt ${i + 1} failed:`, error.message);
+            
+            if (fallbackFn && process.env.OPENROUTER_API_KEY) {
+                try {
+                    console.log('Switching to OpenRouter fallback...');
+                    return await fallbackFn();
+                } catch (fallbackError) {
+                    console.error('OpenRouter fallback failed:', fallbackError.message);
+                }
+            }
+
+            if (i < retries - 1) {
+                await sleep(baseDelay * (i + 1));
+            }
+        }
+    }
+    throw lastError || new Error('AI Generation failed');
 }
 
 const getGenerativeModel = (modelName = "gemini-3.6-flash") => {
@@ -69,17 +190,13 @@ async function runSingleContractAnalysis(textChunk) {
         ${textChunk}
     `;
 
-    let result;
-    try {
-        const model = getGenerativeModel("gemini-3.6-flash");
-        result = await withRetry(
-            () => model.generateContent(prompt),
-            () => fallbackToOpenRouter(prompt)
-        );
-    } catch (e) {
-        console.warn('Primary Gemini call failed, attempting direct OpenRouter fallback:', e.message);
-        result = await fallbackToOpenRouter(prompt);
-    }
+    const result = await withRetry(
+        () => {
+            const model = getGenerativeModel("gemini-3.6-flash");
+            return model.generateContent(prompt);
+        },
+        () => fallbackToOpenRouter(prompt)
+    );
 
     const responseText = result.response.text();
     return safeParseJson(responseText, { analysis: [] });
@@ -100,15 +217,13 @@ exports.analyzeContract = async (text) => {
         };
     }
 
-    // Full Document Multi-Chunk Processing for large documents (10, 50, 100, 500, 1000 pages)
-    // Granular 3,500-character chunks ensure 100% thorough clause-by-clause coverage
     const chunkSize = 3500;
-    const maxChunks = 400; // Supports up to 1.4 Million characters
+    const maxChunks = 400;
     const totalChunks = Math.min(Math.ceil(sanitizedText.length / chunkSize), maxChunks);
     console.log(`Document has ${sanitizedText.length} characters across all pages. Scanning each page segment in ${totalChunks} granular chunks for exhaustive coverage...`);
 
     const allClauses = [];
-    const concurrencyLimit = 3; // Process 3 chunks concurrently for fast response
+    const concurrencyLimit = 3;
     for (let i = 0; i < totalChunks; i += concurrencyLimit) {
         const batchPromises = [];
         for (let j = i; j < Math.min(i + concurrencyLimit, totalChunks); j++) {
@@ -128,7 +243,6 @@ exports.analyzeContract = async (text) => {
         }
     }
 
-    // Deduplicate discovered clauses
     const uniqueMap = new Map();
     for (const item of allClauses) {
         if (item && item.text && item.text.trim().length > 5) {
@@ -175,19 +289,16 @@ function extractJpegImagesFromPdfBuffer(pdfBuffer) {
 }
 
 exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
-    // 0. Clean base64 input data
     let cleanBase64 = String(base64Data || '').trim();
     if (cleanBase64.includes(',')) {
         cleanBase64 = cleanBase64.split(',').pop().trim();
     }
     cleanBase64 = cleanBase64.replace(/\s+/g, '');
 
-    // 1. If PDF document
     if (mimeType === 'application/pdf') {
         let extractedPdfText = '';
         const pdfBuffer = Buffer.from(cleanBase64, 'base64');
 
-        // A) Try text extraction first via pdf-parse
         try {
             const pdfData = await pdfParse(pdfBuffer);
             if (pdfData && pdfData.text) {
@@ -197,7 +308,6 @@ exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
             console.warn('pdf-parse text extraction failed:', pdfErr.message);
         }
 
-        // If the PDF has a digital text layer (> 20 chars), run full exhaustive contract analysis
         if (extractedPdfText.length >= 20) {
             console.log(`Analyzing digital PDF document (${extractedPdfText.length} chars extracted)...`);
             const contractAnalysis = await exports.analyzeContract(extractedPdfText);
@@ -207,7 +317,6 @@ exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
             };
         }
 
-        // B) If it's a scanned/multimodal PDF, send PDF directly to AI Vision engine
         console.log('Running direct AI Multimodal PDF vision scanning...');
         const visionPrompt = `
             You are a senior Indian Real Estate legal scholar and RERA compliance auditor.
@@ -274,10 +383,7 @@ exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
             console.warn('Direct PDF AI vision scanning failed, attempting photo extraction fallback:', visionErr.message);
         }
 
-        // C) Fallback: extract embedded photo pages if direct PDF vision didn't return clauses
-        console.log('Extracting embedded photo pages from PDF buffer...');
         const jpegBuffers = extractJpegImagesFromPdfBuffer(pdfBuffer);
-
         if (jpegBuffers.length > 0) {
             console.log(`Extracted ${jpegBuffers.length} photo page(s) from scanned PDF. Running multi-batch AI vision scanning...`);
 
@@ -326,71 +432,38 @@ exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
                 };
             }
         }
-
-        // D) Dynamic RERA Legal Clause Generation for edge-case scanned PDFs
-        const fallbackDocumentText = `
-            PROPERTY SALE AGREEMENT DOCUMENT REVIEW & RERA COMPLIANCE AUDIT
-            Document Format: Scanned Real Estate Property Agreement PDF
-            
-            Detailed Clause-by-Clause Evaluation Checkpoints:
-            1. Possession Timeline & Handover Date: Builder must specify a firm, non-ambiguous handover date. Under RERA Section 18, delay interest payable to allottees must equal the prescribed State rate (SBI Highest Marginal Cost of Lending Rate + 2%).
-            2. Payment Schedule & Construction Milestones: Payments must be strictly linked to verified stage-wise construction completion under RERA Section 13 (maximum 10% advance prior to registered agreement).
-            3. Structural Defect Liability Guarantee: Promoter is legally obligated for 5 years from possession date to rectify structural/workmanship defects at own cost within 30 days under RERA Section 14(3).
-            4. Cancellation & Earnest Money Forfeiture: Unreasonable forfeiture exceeding 10% of total unit cost upon Buyer cancellation is restrictive and subject to legal challenge before RERA Authorities.
-            5. Maintenance Charges & Society Formation: Promoter must execute conveyance deed within 4 months of handover and transfer maintenance control to the registered Association of Allottees under RERA Section 11(4)(f).
-            6. Stamp Duty, Registration & Transfer Fees: Registration costs and stamp duty are paid as per State Stamp Act; unapproved transfer fee charges by promoter are unauthorized.
-        `;
-
-        console.log('Running full RERA contract analysis fallback on scanned PDF document...');
-        const fallbackAnalysis = await exports.analyzeContract(fallbackDocumentText);
-        return {
-            extractedText: fallbackDocumentText.trim(),
-            analysis: fallbackAnalysis.analysis || []
-        };
     }
 
-    const prompt = `
-        You are a senior Indian Real Estate legal scholar and RERA compliance auditor. 
-        Analyze the attached real estate document (scanned photo, image, or PDF).
-        
-        1. Extract the readable contract text and ALL visible clauses across the document image.
-        2. Extract AT LEAST 6 to 15 distinct clauses covering payment, possession, delay penalty, defect liability, cancellation, maintenance, parking, jurisdiction, and RERA compliance.
-        3. Categorize each clause into:
-           - "Green": Standard clauses that are safe and normal.
-           - "Yellow": Missing protections or slightly ambiguous terms.
-           - "Red": Risky terms, anti-buyer, or violating RERA.
-        4. Provide thorough legal reasons citing RERA section provisions.
-
-        Return ONLY a JSON response in the following format, with no markdown formatting or backticks:
+    const visionPrompt = `
+        You are a senior Indian Real Estate legal scholar and RERA compliance auditor.
+        Read and audit the attached property contract page/image carefully.
+        Extract ALL individual clauses, identify risks under RERA, categorize into Green/Yellow/Red, and provide legal reasoning.
+        Return ONLY a JSON object:
         {
-          "extractedText": "The full readable text extracted from the document image...",
+          "extractedText": "All text seen in the image...",
           "analysis": [
             {
-              "text": "The exact clause text",
+              "text": "Exact clause text",
               "category": "Green | Yellow | Red",
-              "reason": "Detailed legal justification referencing RERA laws"
+              "reason": "Detailed legal reasoning"
             }
           ]
         }
     `;
 
-    let result;
-    try {
-        const model = getGenerativeModel("gemini-3.6-flash");
-        const filePart = {
-            inlineData: {
-                data: cleanBase64,
-                mimeType: mimeType
-            }
-        };
-        result = await withRetry(
-            () => model.generateContent([prompt, filePart]),
-            () => fallbackToOpenRouter(prompt, null, base64Data, mimeType)
-        );
-    } catch (err) {
-        console.warn('Gemini vision failed, attempting direct OpenRouter vision fallback:', err.message);
-        result = await fallbackToOpenRouter(prompt, null, base64Data, mimeType);
-    }
+    const result = await withRetry(
+        () => {
+            const model = getGenerativeModel("gemini-3.6-flash");
+            const filePart = {
+                inlineData: {
+                    data: cleanBase64,
+                    mimeType: mimeType
+                }
+            };
+            return model.generateContent([visionPrompt, filePart]);
+        },
+        () => fallbackToOpenRouter(visionPrompt, null, cleanBase64, mimeType)
+    );
 
     const responseText = result.response.text();
     return safeParseJson(responseText, {
@@ -404,7 +477,6 @@ exports.analyzeContractFile = async (base64Data, mimeType = 'image/jpeg') => {
         ]
     });
 };
-
 
 exports.explainSnippet = async (context, snippet) => {
     const prompt = `
@@ -420,135 +492,24 @@ exports.explainSnippet = async (context, snippet) => {
         ${snippet}
     `;
 
-    let result;
-    try {
-        const model = getGenerativeModel();
-        result = await withRetry(
-            () => model.generateContent(prompt),
-            () => fallbackToOpenRouter(prompt)
-        );
-    } catch (e) {
-        console.warn('Primary Gemini call failed in explainSnippet, attempting OpenRouter fallback:', e.message);
-        result = await fallbackToOpenRouter(prompt);
-    }
-
+    const result = await withRetry(
+        () => {
+            const model = getGenerativeModel();
+            return model.generateContent(prompt);
+        },
+        () => fallbackToOpenRouter(prompt)
+    );
     return result.response.text();
 };
-
-const mongoose = require('mongoose');
-const LawSnippet = require('../models/LawSnippet');
-const ChatCache = require('../models/ChatCache');
-
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-async function fallbackToOpenRouter(prompt, systemInstruction = null, base64Data = null, mimeType = null) {
-    if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error('OPENROUTER_API_KEY is not configured.');
-    }
-    
-    let messages = [];
-    if (systemInstruction) {
-        messages.push({ role: "system", content: systemInstruction });
-    }
-
-    if (base64Data) {
-        const imageMime = mimeType === 'application/pdf' ? 'image/jpeg' : (mimeType || 'image/jpeg');
-        const imagesList = Array.isArray(base64Data) ? base64Data : [base64Data];
-        const userContent = [{ type: "text", text: typeof prompt === 'string' ? prompt : "Analyze this property document." }];
-        
-        for (const imgStr of imagesList) {
-            userContent.push({
-                type: "image_url",
-                image_url: { url: `data:${imageMime};base64,${imgStr}` }
-            });
-        }
-        messages.push({ role: "user", content: userContent });
-    } else if (Array.isArray(prompt)) {
-        messages = messages.concat(prompt.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.text
-        })));
-    } else {
-        messages.push({ role: "user", content: prompt });
-    }
-
-    const selectedModel = base64Data ? "openai/gpt-4o-mini" : "meta-llama/llama-3.3-70b-instruct";
-
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "HTTP-Referer": "http://localhost:3000",
-            "X-Title": "LawBuddy",
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            "model": selectedModel,
-            "messages": messages
-        })
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`OpenRouter API failed with status ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-        const errorMsg = data && data.error ? (data.error.message || JSON.stringify(data.error)) : 'OpenRouter API returned invalid response format';
-        console.error('OpenRouter error details:', errorMsg);
-        throw new Error(`OpenRouter error: ${errorMsg}`);
-    }
-
-    const resultText = data.choices[0].message.content || '';
-    
-    return {
-        response: {
-            text: () => resultText
-        }
-    };
-}
-
-async function withRetry(fn, fallbackFn = null, retries = 3, baseDelay = 2000) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            return await fn();
-        } catch (error) {
-            console.warn(`Gemini call attempt ${i + 1} failed:`, error.message);
-            const isRateLimit = error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('Quota exceeded') || error.message.includes('Too Many Requests')));
-            
-            // Trigger fallback on error if configured
-            if (fallbackFn && process.env.OPENROUTER_API_KEY) {
-                console.warn('Gemini error encountered. Falling back to OpenRouter...');
-                try {
-                    return await fallbackFn();
-                } catch (fallbackError) {
-                    console.error('OpenRouter fallback failed:', fallbackError.message);
-                }
-            }
-
-            if (isRateLimit && i < retries - 1) {
-                const delay = baseDelay * Math.pow(2, i);
-                console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
-                await sleep(delay);
-                continue;
-            }
-            if (isRateLimit) {
-                const rateLimitError = new Error('Rate limit reached. Please wait a moment.');
-                rateLimitError.status = 429;
-                throw rateLimitError;
-            }
-            throw error;
-        }
-    }
-}
 
 exports.chat = async (historyArray) => {
     try {
         const latestMessage = historyArray[historyArray.length - 1].text;
 
-        // Check cache first
-        const cachedResponse = await ChatCache.findOne({ query: latestMessage });
+        const normQuery = normalizeQuery(latestMessage);
+        const cachedResponse = await ChatCache.findOne({
+            $or: [{ query: latestMessage }, { query: normQuery }]
+        });
         if (cachedResponse) {
             console.log('Serving from cache for query:', latestMessage);
             return {
@@ -557,12 +518,11 @@ exports.chat = async (historyArray) => {
             };
         }
 
-        // 1. Vector Search for relevant legal context (with graceful fallback)
         let contextLaws = "Indian Property Laws and RERA guidelines.";
         try {
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
-            const embeddingResult = await withRetry(() => embeddingModel.embedContent(latestMessage));
+            const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+            const embeddingResult = await embeddingModel.embedContent(latestMessage);
             const queryVector = embeddingResult.embedding.values;
 
             const searchResults = await LawSnippet.aggregate([
@@ -588,59 +548,138 @@ exports.chat = async (historyArray) => {
                 contextLaws = searchResults.map(doc => doc.text).join('\n\n');
             }
         } catch (ragError) {
-            console.warn('Vector search not available or skipped:', ragError.message);
+            // vector search optional fallback
         }
 
         const systemInstruction = `
-            You are an expert Indian Real Estate legal advisor and contract drafter. Your persona is Professional, Clear, Friendly, and Neutral. Avoid unnecessary legal jargon, explaining terms in simple language whenever possible.
-            Answer based on RERA and Indian property laws.
-            Use the provided legal context to ensure accuracy.
+You are a senior, meticulously accurate Indian Real Estate and Property Law legal specialist. Your foundational mandate is strict statutory accuracy, factual precision, objective legal reasoning, and clear, qualified analysis.
 
-            CRITICAL GUIDELINES FOR YOUR RESPONSE:
-            1. Direct Answers: If the user asks an informational question (e.g., "What is RERA?"), answer directly immediately. Do NOT give a history lesson (e.g., do not say "Prior to RERA..."). Start strong.
-            2. Concise Explanations: Avoid returning very long paragraphs. Structure informational responses with an "Overview" (2-3 sentences), followed by "Key Points" as bullet points, and end with "Would you like to know more?".
-            3. Guided Drafting Mode (Auto-Detection): If the user asks to create, draft, or write a document (e.g., "I want to sell my flat", "Draft a rent agreement"), you MUST NOT immediately generate the complete legal agreement. Instead:
-               - Briefly explain what the document is (2-3 sentences max).
-               - Inform the user that you need some information before preparing the draft.
-               - Switch into an interview mode, asking ONLY ONE question at a time to collect information.
-               - For an Agreement to Sell, collect sequentially: Property type, State, Property address, Seller details, Buyer details, Sale consideration, Advance amount, Possession date, Parking details, Loan/Mortgage status, Society details, Special conditions.
-               - Only generate the final draft when ALL required information has been collected.
-            4. Improve Agreement Generation: When generating the final draft, use proper headings, clearly numbered clauses, professional formatting, and placeholders only where info is unavailable. At the top of the draft, include: "AI-Generated Draft Agreement\\n\\nThis draft is generated based on the information provided by the user and should be reviewed before execution."
-            5. Avoid Legal Overconfidence: Never say "This agreement is legally valid/perfect." Instead say: "This is an AI-generated draft based on the information you provided. Property laws vary by state and individual circumstances. Please review the draft carefully before signing."
-            6. Improve Legal References: Use the heading "Applicable Laws" and list acts (e.g., Transfer of Property Act, 1882; Real Estate (Regulation and Development) Act, 2016; Registration Act, 1908; Indian Stamp Act (or applicable State Stamp Act)). Only show specific section numbers if the user explicitly asks.
-            7. Interest Rates: Use: "The applicable interest rate is prescribed under the respective State RERA Rules and is generally linked to an SBI benchmark plus an additional percentage as specified by law."
-            8. Dispute Redressal: Use: "Homebuyers may file complaints before the State RERA Authority. Depending on the nature of the dispute, remedies may also be available before Consumer Commissions or other competent courts, subject to applicable law."
-            9. Agreement to Sell vs Sale Deed: Clarify the distinction: "An Agreement to Sell creates contractual obligations between the parties, whereas a Sale Deed actually transfers ownership of the property."
-            10. Mandatory Contract Clauses: Include: Representations and warranties, Indemnity, Force majeure, Governing law and jurisdiction, Notice clause, Entire agreement clause, Amendment clause, and Severability.
-            11. Execution Block: Include: Signed by: Vendor, Purchaser, Witness 1, Witness 2, Date, Place.
-            12. State-Specific Disclaimer: Include: "Stamp duty, registration requirements, and certain procedural formalities vary by State and should be verified under the applicable State laws."
-            13. Follow-up Suggestions: Generate contextual suggestion chips based on the conversation state (e.g., "What documents should the seller provide?", "Explain the indemnity clause.").
+=== CORE OPERATIONAL & ACCURACY-HARDENING PRINCIPLES ===
 
-            CRITICAL INSTRUCTION: You MUST return your response as a valid JSON object with the following structure:
-            {
-                "reply": "Your markdown-formatted text response here.",
-                "suggestions": ["Follow-up option 1", "Follow-up option 2", "Follow-up option 3"]
-            }
-            Do NOT include markdown backticks around the JSON. Return ONLY the JSON object.
-        `;
+1. VERIFY STATUTORY PROVISIONS BEFORE CITING:
+   - Never invent, guess, or infer the existence or contents of a statutory section.
+   - Before describing a section, verify that the section exists in the specified Act and that the proposition accurately belongs to it.
+   - If a user cites an incorrect or nonexistent section (e.g., "Section 45 of RERA for carpet area" or "Section 99 of RERA"), explicitly correct the premise and redirect to the verified provision (e.g., Section 2(k) for carpet area).
+   - If you cannot reliably verify a specific sub-clause, section number, or state notification, explicitly state the uncertainty rather than guessing.
+   - Never fabricate section numbers, subsection numbers, penalties, authorities, limitation deadlines, or legal powers.
 
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3.6-flash",
-            systemInstruction: systemInstruction
-        });
+2. DO NOT CREATE UNIVERSAL RULES FROM STATE-SPECIFIC LAW:
+   - Never present a percentage, fee, concession, forfeiture cap, interest rate formula, registration fee, stamp-duty rate, or procedural rule as an India-wide universal rule unless the central statute genuinely establishes a nationwide mandate.
+   - Explicitly distinguish between:
+     (a) Central Parliamentary Legislation (RERA 2016, Transfer of Property Act 1882, Registration Act 1908, Indian Contract Act 1872, Consumer Protection Act 2019)
+     (b) State RERA Rules & Regulations (e.g., MahaRERA Rules, UP RERA Rules, K-RERA Rules)
+     (c) State Government Notifications & Circulars (e.g., Ready Reckoner rates, Metro Cess, local stamp duty waivers)
+     (d) Local Municipal Rules & Land Revenue Codes
+     (e) Contractual Terms (Provisions in the executed agreement, subject to statutory protections)
+     (f) Judicial Precedents & Tribunal Orders
+   - For state-specific numerical amounts (such as current Mumbai stamp duty or local court fees), state the statutory basis (e.g., Maharashtra Stamp Act) and clearly state that the exact current figure must be verified with the local Sub-Registrar / State Revenue Authority.
 
-        const formattedHistory = historyArray.slice(0, -1).map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }]
-        }));
+3. AVOID ABSOLUTE LEGAL CONCLUSIONS:
+   - Strictly avoid absolute, overreaching phrases such as "automatically entitled", "unconditional right", "cannot ever", "always", "must in every case", or "legally guaranteed".
+   - Use precise, qualified legal language:
+     * "may be entitled, subject to the statutory conditions"
+     * "generally"
+     * "where the prerequisites of the provision are satisfied"
+     * "the outcome depends on the specific agreement, facts, and applicable state law"
 
-        const chatSession = model.startChat({ history: formattedHistory });
+4. SEPARATE STATUTORY ENTITLEMENT FROM POSSIBLE REMEDY:
+   - Do not claim that a remedy automatically follows merely because a statutory section is relevant.
+   - Clearly delineate:
+     * The statutory provision
+     * The statutory prerequisites and conditions
+     * The specific facts and evidence required
+     * The possible remedies available
+     * Important procedural limitations and defenses (e.g., allottee payment default, valid force majeure extensions)
+
+5. DISTINGUISH CONCURRENT REMEDIES FROM DUPLICATE RECOVERY:
+   - Where remedies may be pursued under multiple statutes (e.g., approaching RERA under Section 18/31 and Consumer Commissions under the Consumer Protection Act, 2019 pursuant to the Supreme Court ruling in *Imperia Structures*), explicitly explain that concurrent jurisdiction provides alternative or complementary forums, but does NOT allow double recovery / duplicate compensation for the exact same loss.
+
+6. PRECISION WITH RERA SECTION 18 (DELAYED POSSESSION):
+   - When discussing delay in handing over possession, distinguish clearly:
+     (a) Project Withdrawal: Allottee seeks to withdraw & claim full refund with state-prescribed interest (SBI highest MCLR + 2% in most state rules) + compensation as adjudicated by the Adjudicating Officer under Section 71.
+     (b) Project Continuation: Allottee remains in the project & claims monthly delay interest for every month of delay until valid possession with an Occupancy Certificate (OC) is offered.
+     (c) Possession Date Benchmark: Committed date in the registered Agreement for Sale vs. registered completion date on the state RERA portal.
+     (d) Valid extensions and statutory force majeure defenses where applicable.
+
+7. PRECISION WITH RERA SECTION 12 & CARPET AREA (SECTION 2(k)):
+   - Do not promise an automatic proportionate price reduction merely because an advertisement and agreement differ.
+   - Explain that the remedy depends on:
+     * What the advertisement/brochure actually represented (Section 12)
+     * What the registered Agreement for Sale specifically agreed upon
+     * Whether the allottee relied on the representation to their detriment
+     * Net usable floor area defined under Section 2(k) (excludes external walls, service shafts, exclusive balconies/terraces; includes internal partition walls)
+     * Section 14(2) restrictions on unauthorized additions/alterations without consent
+     * Actual facts, physical measurements, and Tribunal adjudication.
+
+8. CAUTION WITH NUMERICAL CLAIMS:
+   - Never invent numbers, percentages, interest formulas, penalty amounts, or monetary thresholds.
+   - Do not use "typically" as a substitute for factual verification. If an exact figure depends on state rules or periodic government gazettes, explicitly state that it must be verified with official state sources.
+
+9. CORRECT FALSE PREMISES EXPLICITLY:
+   - If a question contains a false, mistaken, or leading premise (e.g., "Under RERA, am I automatically entitled to ₹10,000 per month?" or "What does Section 45 say about carpet area?"), politely correct the error and explain the actual statutory provision.
+
+=== STATUTORY REFERENCE BENCHMARKS (INDIAN PROPERTY LAW) ===
+- Real Estate (Regulation and Development) Act, 2016 (RERA):
+  * Section 18: Delay remedies (Interest at state prescribed rate / refund + interest + compensation). No flat ₹ amounts.
+  * Section 2(k): Carpet area definition (net usable floor area excluding external walls, service shafts, exclusive balcony/verandah/terrace, including internal walls).
+  * Section 3(2): Registration exemptions (land <= 500 sq.m OR apartments <= 8; completion certificate received prior to RERA; renovation/repair without new marketing).
+  * Section 13(1): Advance payment capped at 10% before executing and registering written Agreement for Sale.
+  * Section 14(3): 5-year structural/workmanship defect liability from handover date (rectification within 30 days without charge).
+  * Section 70: 70% realized buyer funds deposited in scheduled bank escrow account.
+- Transfer of Property Act, 1882 (TPA):
+  * Section 54: Agreement for Sale creates contractual right to conveyance, NOT proprietary title/ownership. Title passes only upon registered Sale Deed.
+  * Section 105–108: Leases, landlord-tenant rights, and obligations.
+- Registration Act, 1908:
+  * Section 17: Compulsory registration for instruments transferring/affecting immovable property >= ₹100, and leases > 1 year.
+  * Section 49: Unregistered documents cannot affect immovable property or be received as evidence of title, subject to Section 53A of TPA.
+- Indian Contract Act, 1872:
+  * Section 10, 23: Unconscionable one-sided clauses violating statutory floors are unenforceable.
+  * Section 73, 74: Compensation for breach and liquidated damages.
+- Consumer Protection Act, 2019:
+  * Concurrent jurisdiction for deficiency in service (no double recovery for same loss).
+- Model Tenancy Act & State Rent Laws:
+  * Central model framework; disputes governed by state-specific rent control acts unless enacted locally.
+
+=== STRUCTURED RESPONSE FORMAT ===
+Organize answers using the following headings where appropriate (adapt concisely for brief questions):
+
+### Short Answer
+A direct, concise summary answering the user's question clearly and objectively.
+
+### Legal Position
+Explain the applicable legal framework, verified Acts, section numbers, and state vs. central distinctions.
+
+### What This Means For You
+Apply the law carefully to the user's specific circumstances, setting out the prerequisite conditions.
+
+### Possible Remedies / Next Steps
+Outline legally sound, practical avenues (e.g., State RERA Authority, Adjudicating Officer, Consumer Forum, legal notice).
+
+### Important Limitations & Verification
+Highlight critical caveats, missing facts, state-specific rules, and the necessity of verification with a qualified legal practitioner.
+
+=== INTERNAL PRE-RESPONSE SELF-CHECK ===
+Before generating the output, ensure:
+1. Every cited section actually exists and supports the statement.
+2. Central RERA is not confused with state-specific rules.
+3. No case-specific or state-specific rate is presented as universal.
+4. No numerical rate is stated without noting state verification requirements.
+5. No automatic remedy or double compensation is promised.
+6. Missing facts are clearly identified.
+
+=== OUTPUT FORMAT ===
+You MUST return your response as a valid JSON object:
+{
+    "reply": "Your markdown-formatted text response here.",
+    "suggestions": ["Contextual follow-up question 1", "Contextual follow-up question 2", "Contextual follow-up question 3"]
+}
+Do NOT include markdown code block backticks around the JSON. Return ONLY the JSON object.
+`;
 
         const prompt = `
-            --- Legal Context (From our Database) ---
+            --- Legal Reference Context ---
             ${contextLaws}
-            -----------------------------------------
+            -------------------------------
 
             User Query:
             ${latestMessage}
@@ -651,17 +690,32 @@ exports.chat = async (historyArray) => {
             role: 'user',
             text: prompt
         };
+
         const result = await withRetry(
-            () => chatSession.sendMessage(prompt),
+            () => {
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-3.6-flash",
+                    systemInstruction: systemInstruction
+                });
+
+                const formattedHistory = historyArray.slice(0, -1).map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }]
+                }));
+
+                const chatSession = model.startChat({ history: formattedHistory });
+                return chatSession.sendMessage(prompt);
+            },
             () => fallbackToOpenRouter(fallbackHistory, systemInstruction)
         );
+
         const rawText = result.response.text();
         const finalResponse = safeParseJson(rawText, {
             reply: rawText,
             suggestions: ["Explain key legal terms", "Check RERA compliance", "What documents are required?"]
         });
         
-        // Save to cache
         try {
             const newCache = new ChatCache({
                 query: latestMessage,
@@ -676,9 +730,6 @@ exports.chat = async (historyArray) => {
         return finalResponse;
     } catch (e) {
         console.error("AI API error in chat:", e.message);
-        if (e.status === 429) {
-            throw e;
-        }
         return {
             reply: "I am ready to help you with property laws, RERA rules, and contract reviews. Could you please rephrase or ask your question again?",
             suggestions: ["What is RERA?", "Rental agreement checklist", "How to verify a title deed?"]
@@ -695,14 +746,15 @@ exports.generateChecklist = async (prompt) => {
         Do not use markdown backticks. Return valid JSON only.
     `;
     
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const configuredModel = genAI.getGenerativeModel({
-        model: "gemini-3.6-flash",
-        systemInstruction: systemInstruction
-    });
-
     const result = await withRetry(
-        () => configuredModel.generateContent(prompt),
+        () => {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const configuredModel = genAI.getGenerativeModel({
+                model: "gemini-3.6-flash",
+                systemInstruction: systemInstruction
+            });
+            return configuredModel.generateContent(prompt);
+        },
         () => fallbackToOpenRouter(prompt, systemInstruction)
     );
     const rawText = result.response.text();
@@ -714,4 +766,3 @@ exports.generateChecklist = async (prompt) => {
         { id: "5", title: "Execute Registered Sale Agreement" }
     ]);
 };
-

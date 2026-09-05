@@ -119,6 +119,26 @@ void main() {
     expect(find.byType(AnalysisScreen), findsOneWidget);
     expect(find.text('Risk Analysis Report'), findsOneWidget);
     expect(find.text('Export PDF'), findsOneWidget);
-    expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.download), findsOneWidget);
+  });
+
+  testWidgets('ChatScreen renders empty state suggestions and handles input', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ChatScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.text('Legal AI Assistant'), findsOneWidget);
+    expect(find.byType(TextField), findsWidgets);
   });
 }
+
+

@@ -221,16 +221,24 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> chat(List<Map<String, dynamic>> history) async {
+  static Future<Map<String, dynamic>> chat(List<Map<String, dynamic>> history, {String? sessionId}) async {
+    final token = await _getToken();
     final sanitizedHistory = history.map((m) => {
       'role': m['role'],
       'text': m['text'],
+      if (m['time'] != null) 'time': m['time'],
     }).toList();
     
     final response = await http.post(
       Uri.parse('$baseUrl/chat'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'history': sanitizedHistory}),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'history': sanitizedHistory,
+        if (sessionId != null && sessionId.isNotEmpty) 'sessionId': sessionId,
+      }),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -238,6 +246,59 @@ class ApiService {
       throw RateLimitException('Rate limit reached. Please wait a moment before sending another message.');
     } else {
       throw Exception('Failed to send chat message');
+    }
+  }
+
+  static Future<List<dynamic>> fetchChatSessions() async {
+    try {
+      final token = await _getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/chat/sessions'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching chat sessions: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchChatSession(String sessionId) async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/chat/sessions/$sessionId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load chat session');
+    }
+  }
+
+  static Future<bool> deleteChatSession(String sessionId) async {
+    try {
+      final token = await _getToken();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/chat/sessions/$sessionId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error deleting chat session: $e');
+      return false;
     }
   }
 
