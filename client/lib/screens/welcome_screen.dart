@@ -66,11 +66,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final isTablet = size.width >= 600 && size.width < 960;
 
     final bgGradientColors = isDark
-        ? [const Color(0xFF0B1120), const Color(0xFF0F172A), const Color(0xFF020617)]
-        : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)];
+        ? [const Color(0xFF162B43), const Color(0xFF13253A), const Color(0xFF101F31)]
+        : [const Color(0xFFFBF8EE), const Color(0xFFF7F1D0), const Color(0xFFF4EFE0)];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -136,10 +136,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: (isDark ? const Color(0xFF0F172A) : Colors.white).withValues(alpha: 0.9),
+        color: (isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE)).withValues(alpha: 0.95),
         border: Border(
           bottom: BorderSide(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
             width: 1,
           ),
         ),
@@ -169,14 +169,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         height: 36,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                            colors: [Color(0xFF91ADCD), Color(0xFF708CAE)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                              color: const Color(0xFF91ADCD).withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -195,13 +195,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Legal Document Scanner',
+                              'LawBuddy',
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                               style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                                 letterSpacing: -0.3,
                               ),
                             ),
@@ -212,7 +212,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               style: GoogleFonts.inter(
                                 fontSize: 8.5,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF3B82F6),
+                                color: const Color(0xFF91ADCD),
                                 letterSpacing: 1.1,
                               ),
                             ),
@@ -248,10 +248,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       minimumSize: const Size(0, 38),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       side: BorderSide(
-                        color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
                       ),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                      foregroundColor: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                     ),
                     child: Text(
                       'Sign In',
@@ -323,8 +323,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              const Color(0xFF2563EB).withValues(alpha: isDark ? 0.22 : 0.10),
-                              const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.08 : 0.03),
+                              const Color(0xFF91ADCD).withValues(alpha: isDark ? 0.22 : 0.12),
+                              const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.10 : 0.05),
                               Colors.transparent,
                             ],
                             radius: 0.85,
@@ -342,10 +342,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.2 : 0.1),
+                          color: const Color(0xFF91ADCD).withValues(alpha: isDark ? 0.2 : 0.1),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.4 : 0.25),
+                            color: const Color(0xFF91ADCD).withValues(alpha: isDark ? 0.4 : 0.25),
                           ),
                         ),
                         child: Row(
@@ -354,9 +354,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             Container(
                               width: 7,
                               height: 7,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFF38BDF8),
+                                color: isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -370,7 +370,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                  color: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78),
                                   letterSpacing: 0.8,
                                 ),
                               ),
@@ -410,7 +410,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           style: GoogleFonts.inter(
                             fontSize: isDesktop ? 15.0 : 13.5,
                             height: 1.6,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
                           ),
                         ),
                       ),
@@ -427,12 +427,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           ElevatedButton(
                             onPressed: _navigateToSignup,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
+                              backgroundColor: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 4,
-                              shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                              shadowColor: (isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78)).withValues(alpha: 0.3),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -450,13 +450,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             onPressed: _navigateToLogin,
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                              foregroundColor: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                             ),
                             child: RichText(
                               text: TextSpan(
                                 style: GoogleFonts.inter(
                                   fontSize: 13.5,
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
                                 ),
                                 children: [
                                   const TextSpan(text: 'Already have an account? '),
@@ -464,7 +464,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     text: 'Sign in',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                      color: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78),
                                       decoration: TextDecoration.underline,
                                     ),
                                   ),
@@ -666,13 +666,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF0F172A).withValues(alpha: 0.75)
-                          : const Color(0xFFE2E8F0).withValues(alpha: 0.75),
+                          ? const Color(0xFF162B43).withValues(alpha: 0.85)
+                          : const Color(0xFFF4EFE0).withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isDark
-                            ? const Color(0xFF334155).withValues(alpha: 0.5)
-                            : const Color(0xFFCBD5E1),
+                            ? const Color(0xFF334356).withValues(alpha: 0.5)
+                            : const Color(0xFFE4DDD0),
                         width: 1.2,
                       ),
                     ),
@@ -687,7 +687,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   boxShadow: [
                     // Ambient Blue Depth Glow
                     BoxShadow(
-                      color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.35 : 0.15),
+                      color: const Color(0xFF91ADCD).withValues(alpha: isDark ? 0.35 : 0.15),
                       blurRadius: 42,
                       spreadRadius: 2,
                       offset: const Offset(0, 16),
@@ -703,12 +703,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 child: Container(
                   padding: EdgeInsets.all(isDesktop ? 22 : 18),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isDark
-                          ? const Color(0xFF38BDF8).withValues(alpha: 0.35)
-                          : const Color(0xFFCBD5E1),
+                          ? const Color(0xFF334356)
+                          : const Color(0xFFE4DDD0),
                       width: 1.5,
                     ),
                   ),
@@ -727,13 +727,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                                    color: const Color(0xFF91ADCD).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
                                     Icons.description_outlined,
                                     size: 16,
-                                    color: Color(0xFF3B82F6),
+                                    color: Color(0xFF91ADCD),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -746,7 +746,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 0.5,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                                     ),
                                   ),
                                 ),
@@ -1560,7 +1560,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               const SizedBox(height: 20),
 
               Text(
-                '© 2026 Legal Document Scanner • Built with Flutter, Node.js & Gemini AI for Real Estate LegalTech',
+                '© 2026 LawBuddy • Built with Flutter, Node.js & Gemini AI for Real Estate LegalTech',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 11.5,

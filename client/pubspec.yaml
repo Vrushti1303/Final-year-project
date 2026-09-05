@@ -1,5 +1,5 @@
 name: legal_scanner
-description: A real estate LegalTech mobile application prototype.
+description: LawBuddy - AI-powered real estate legal document scanner & assistant.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -19,7 +19,10 @@ dependencies:
   pinput: ^6.0.2
   file_picker: ^11.0.2
   syncfusion_flutter_pdf: ^33.2.13
+  syncfusion_flutter_pdfviewer: ^33.2.13
   url_launcher: ^6.3.0
+  path_provider: ^2.1.6
+  open_file_plus: ^3.4.1+1
 
 dev_dependencies:
   flutter_test:

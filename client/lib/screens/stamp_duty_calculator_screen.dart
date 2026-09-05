@@ -240,7 +240,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const Color purpleAccent = Color(0xFF8B5CF6);
+    final Color goldAccent = isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B);
 
     return Scaffold(
       body: Container(
@@ -250,14 +250,14 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
             end: Alignment.bottomCenter,
             colors: isDark
                 ? const [
-                    Color(0xFF0F172A),
-                    Color(0xFF101827),
-                    Color(0xFF0B1120),
+                    Color(0xFF162B43),
+                    Color(0xFF13253A),
+                    Color(0xFF101F31),
                   ]
                 : const [
-                    Color(0xFFF8FAFC),
-                    Color(0xFFF1F5F9),
-                    Color(0xFFEEF2F6),
+                    Color(0xFFFBF8EE),
+                    Color(0xFFF7F1D0),
+                    Color(0xFFF4EFE0),
                   ],
           ),
         ),
@@ -274,10 +274,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildCalculatorFormCard(context, colorScheme, isDark, purpleAccent),
+                          _buildCalculatorFormCard(context, colorScheme, isDark, goldAccent),
                           if (_hasCalculated) ...[
                             const SizedBox(height: 28),
-                            _buildResultSummaryCard(context, colorScheme, isDark, purpleAccent),
+                            _buildResultSummaryCard(context, colorScheme, isDark, goldAccent),
                           ],
                           const SizedBox(height: 24),
                           _buildDisclaimerBox(context, colorScheme, isDark),
@@ -299,10 +299,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
+        color: isDark ? const Color(0xFF162B43).withValues(alpha: 0.90) : const Color(0xFFFBF8EE).withValues(alpha: 0.95),
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
           ),
         ),
       ),
@@ -318,10 +318,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
                       ),
                     ),
                     child: Icon(Icons.arrow_back_rounded, color: colorScheme.onSurface, size: 20),
@@ -334,35 +334,14 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Stamp Duty Calculator',
-                          style: TextStyle(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'NEW',
-                            style: TextStyle(
-                              color: Color(0xFF8B5CF6),
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Stamp Duty Calculator',
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                     Text(
                       'Calculate estimated stamp duty and registration charges for your property transaction.',
@@ -387,10 +366,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
   Widget _buildCalculatorFormCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
         boxShadow: [
           BoxShadow(
@@ -752,10 +731,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
   Widget _buildResultSummaryCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: purpleAccent.withValues(alpha: 0.4),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
           width: 1.5,
         ),
         boxShadow: [
@@ -917,10 +896,10 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF101827) : const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
       ),
       child: Row(

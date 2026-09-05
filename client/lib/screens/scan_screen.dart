@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,12 +28,17 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Future<void> _scanImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: source);
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
       if (image == null) return;
 
       setState(() {
         _isProcessing = true;
-        _statusMessage = 'Extracting text...';
+        _statusMessage = 'Analyzing image document...';
       });
 
       String extractedText = '';
@@ -43,28 +49,45 @@ class _ScanScreenState extends State<ScanScreen> {
           final inputImage = InputImage.fromFilePath(image.path);
           final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
           extractedText = recognizedText.text;
+        } catch (mlKitErr) {
+          debugPrint('MLKit local OCR error, falling back to server vision: $mlKitErr');
         } finally {
           textRecognizer.close();
         }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Camera OCR is supported on mobile devices. Please paste document text below for Web analysis.')),
-          );
-        }
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-        }
+      }
+
+      final Uint8List bytes = await image.readAsBytes();
+      final String mimeType = image.mimeType ?? (image.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+      final String base64Str = base64Encode(bytes);
+
+      if (extractedText.trim().length > 10) {
+        await _analyzeText(
+          extractedText, 
+          title: image.name.isNotEmpty ? image.name : 'Photo Scan Document', 
+          sourceType: 'Photo Scan', 
+          base64Data: base64Str, 
+          mimeType: mimeType
+        );
         return;
       }
 
-      if (extractedText.isEmpty) {
-        throw Exception('No text found in the image.');
-      }
-
-      await _analyzeText(extractedText);
+      // Multimodal AI Vision Fallback (Web, Desktop, or scanned images)
+      final analysisResult = await ApiService.scanDocumentFile(bytes, mimeType, title: image.name, sourceType: 'Photo Scan');
+      
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnalysisScreen(
+            originalText: analysisResult['extractedText'] ?? 'Scanned Property Image',
+            analysis: analysisResult['analysis'] ?? [],
+            documentTitle: image.name.isNotEmpty ? image.name : 'Scanned Property Agreement',
+            sourceType: 'Photo Scan',
+            fileData: base64Str,
+            mimeType: mimeType,
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
@@ -81,41 +104,96 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        withData: kIsWeb, // Web requires bytes directly
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+        withData: true,
       );
 
       if (result != null) {
         setState(() {
           _isProcessing = true;
-          _statusMessage = 'Extracting PDF text...';
+          _statusMessage = 'Reading document...';
         });
 
-        List<int>? bytes;
-        if (kIsWeb) {
-          bytes = result.files.single.bytes?.toList();
-        } else {
-          final file = File(result.files.single.path!);
-          bytes = await file.readAsBytes();
+        final PlatformFile file = result.files.single;
+        List<int>? bytes = file.bytes?.toList();
+        if (bytes == null && file.path != null) {
+          final ioFile = File(file.path!);
+          bytes = await ioFile.readAsBytes();
         }
 
         if (bytes == null || bytes.isEmpty) {
-          throw Exception('Could not read file.');
+          throw Exception('Could not read selected document file.');
         }
 
-        final PdfDocument document = PdfDocument(inputBytes: bytes);
-        final String extractedText = PdfTextExtractor(document).extractText();
-        document.dispose();
+        final Uint8List uint8bytes = Uint8List.fromList(bytes);
+        final String fileName = file.name;
+        final String ext = fileName.split('.').last.toLowerCase();
+        final String base64Str = base64Encode(uint8bytes);
 
-        if (extractedText.trim().isEmpty) {
-          throw Exception('No readable text found in this PDF.');
+        if (ext == 'pdf') {
+          String extractedText = '';
+          try {
+            final PdfDocument document = PdfDocument(inputBytes: uint8bytes);
+            extractedText = PdfTextExtractor(document).extractText();
+            document.dispose();
+          } catch (pdfErr) {
+            debugPrint('PdfTextExtractor error, falling back to server vision: $pdfErr');
+          }
+
+          if (extractedText.trim().length > 20) {
+            await _analyzeText(
+              extractedText, 
+              title: fileName, 
+              sourceType: 'PDF Document', 
+              base64Data: base64Str, 
+              mimeType: 'application/pdf'
+            );
+            return;
+          }
+
+          // Scanned PDF fallback via Multimodal Vision AI
+          setState(() {
+            _statusMessage = 'Analyzing scanned PDF via AI vision...';
+          });
+          final analysisResult = await ApiService.scanDocumentFile(uint8bytes, 'application/pdf', title: fileName, sourceType: 'PDF Document');
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AnalysisScreen(
+                originalText: analysisResult['extractedText'] ?? 'Scanned PDF Document',
+                analysis: analysisResult['analysis'] ?? [],
+                documentTitle: fileName,
+                sourceType: 'PDF Document',
+                fileData: base64Str,
+                mimeType: 'application/pdf',
+              ),
+            ),
+          );
+        } else {
+          final String mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+          final analysisResult = await ApiService.scanDocumentFile(uint8bytes, mimeType, title: fileName, sourceType: 'Photo Scan');
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AnalysisScreen(
+                originalText: analysisResult['extractedText'] ?? 'Scanned Image Document',
+                analysis: analysisResult['analysis'] ?? [],
+                documentTitle: fileName,
+                sourceType: 'Photo Scan',
+                fileData: base64Str,
+                mimeType: mimeType,
+              ),
+            ),
+          );
         }
-
-        await _analyzeText(extractedText, title: result.files.single.name);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error reading PDF: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error reading document: ${e.toString()}')));
     } finally {
       if (mounted) {
         setState(() {
@@ -125,14 +203,20 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<void> _analyzeText(String text, {String? title}) async {
+  Future<void> _analyzeText(String text, {String? title, String? sourceType, String? base64Data, String? mimeType}) async {
     setState(() {
       _isProcessing = true;
       _statusMessage = 'Analyzing for risks...';
     });
 
     try {
-      final analysisResult = await ApiService.scanDocument(text, title: title);
+      final analysisResult = await ApiService.scanDocument(
+        text, 
+        title: title, 
+        sourceType: sourceType ?? 'Text Description',
+        base64Data: base64Data,
+        mimeType: mimeType,
+      );
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -142,6 +226,9 @@ class _ScanScreenState extends State<ScanScreen> {
             originalText: text,
             analysis: analysisResult['analysis'] ?? [],
             documentTitle: title ?? 'Scanned Property Agreement',
+            sourceType: sourceType ?? 'Text Description',
+            fileData: base64Data ?? analysisResult['fileData'],
+            mimeType: mimeType ?? analysisResult['mimeType'],
           ),
         ),
       );

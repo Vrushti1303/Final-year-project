@@ -9,6 +9,7 @@ import 'chat_screen.dart';
 import 'checklists_list_screen.dart';
 import 'analysis_screen.dart';
 import 'stamp_duty_calculator_screen.dart';
+import 'recent_documents_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -203,14 +204,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             end: Alignment.bottomCenter,
             colors: isDark
                 ? const [
-                    Color(0xFF0F172A),
-                    Color(0xFF101827),
-                    Color(0xFF0B1120),
+                    Color(0xFF162B43),
+                    Color(0xFF13253A),
+                    Color(0xFF101F31),
                   ]
                 : const [
-                    Color(0xFFF8FAFC),
-                    Color(0xFFF1F5F9),
-                    Color(0xFFEEF2F6),
+                    Color(0xFFFBF8EE),
+                    Color(0xFFF7F1D0),
+                    Color(0xFFF4EFE0),
                   ],
           ),
         ),
@@ -306,10 +307,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
+        color: isDark ? const Color(0xFF162B43).withValues(alpha: 0.90) : const Color(0xFFFBF8EE).withValues(alpha: 0.95),
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
           ),
         ),
       ),
@@ -396,10 +397,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                           child: Container(
                             height: 40,
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                              color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFCBD5E1),
+                                color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
                                 width: 1.0,
                               ),
                               boxShadow: isDark
@@ -485,10 +486,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   Widget _buildHeroSection(BuildContext context, ColorScheme colorScheme, bool isDark, String userName) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
         boxShadow: [
           BoxShadow(
@@ -591,7 +592,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 description: 'Analyze documents for legal risk',
                 ctaText: 'Explore →',
                 icon: Icons.document_scanner_rounded,
-                accentColor: const Color(0xFF3B82F6), // Royal Blue
+                accentColor: const Color(0xFF91ADCD), // Chambray Blue Accent
                 onTap: () => _navigateTo(const ScanScreen()),
               ),
               _QuickActionItem(
@@ -599,7 +600,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 description: 'Ask property & RERA questions',
                 ctaText: 'Explore →',
                 icon: Icons.forum_outlined,
-                accentColor: const Color(0xFFF59E0B), // Amber / Gold
+                accentColor: isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B), // Warm Taupe / Cocoa Accent
                 onTap: () => _navigateTo(const ChatScreen()),
               ),
               _QuickActionItem(
@@ -607,7 +608,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 description: checklistDesc,
                 ctaText: 'Explore →',
                 icon: Icons.checklist_rounded,
-                accentColor: const Color(0xFF10B981), // Emerald / Teal
+                accentColor: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78), // Muted Steel Blue / Deep Navy Accent
                 badgeText: checklistBadge,
                 showProgress: true,
                 progress: checklistProgress,
@@ -618,8 +619,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 description: 'Calculate stamp duty & registration charges',
                 ctaText: 'Explore →',
                 icon: Icons.calculate_rounded,
-                accentColor: const Color(0xFF8B5CF6), // Purple / Violet
-                badgeText: 'New',
+                accentColor: isDark ? const Color(0xFFC5A85E) : const Color(0xFFFFDF8C), // Soft Golden Yellow Accent
                 onTap: () => _navigateTo(const StampDutyCalculatorScreen()),
               ),
             ];
@@ -694,10 +694,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.tertiary.withValues(alpha: isDark ? 0.35 : 0.4),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
         boxShadow: [
           BoxShadow(
@@ -974,10 +974,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -1010,7 +1010,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               ),
               const SizedBox(width: 8),
               TextButton(
-                onPressed: () => _navigateTo(const ScanScreen()),
+                onPressed: () => _navigateTo(const RecentDocumentsScreen()),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   minimumSize: Size.zero,
@@ -1112,6 +1112,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                           originalText: doc.originalText,
                           analysis: doc.analysis,
                           documentTitle: doc.title,
+                          sourceType: doc.sourceType,
+                          fileData: doc.fileData,
+                          mimeType: doc.mimeType,
                         ),
                       );
                     } else {
@@ -1203,10 +1206,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -1533,13 +1536,13 @@ class _QuickActionCardState extends State<_QuickActionCard> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: widget.isDark
-                ? (_isHovered ? const Color(0xFF263549) : const Color(0xFF1E293B))
-                : (_isHovered ? const Color(0xFFF8FAFC) : Colors.white),
+                ? (_isHovered ? const Color(0xFF1E334D) : const Color(0xFF2B2920))
+                : (_isHovered ? const Color(0xFFF4EFE0) : const Color(0xFFF7F1D0)),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: _isHovered
                   ? widget.item.accentColor.withValues(alpha: 0.5)
-                  : (widget.isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06)),
+                  : (widget.isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0)),
               width: _isHovered ? 1.2 : 1.0,
             ),
             boxShadow: [
@@ -1703,6 +1706,9 @@ class _RecentDocItem {
   final String docSize;
   final String originalText;
   final List<dynamic> analysis;
+  final String sourceType;
+  final String? fileData;
+  final String? mimeType;
 
   _RecentDocItem({
     required this.id,
@@ -1714,6 +1720,9 @@ class _RecentDocItem {
     required this.docSize,
     this.originalText = '',
     this.analysis = const [],
+    this.sourceType = 'PDF Document',
+    this.fileData,
+    this.mimeType,
   });
 
   factory _RecentDocItem.fromJson(Map<String, dynamic> json) {
@@ -1724,6 +1733,9 @@ class _RecentDocItem {
     final dateText = 'Scanned ${_formatRelativeTime(createdAt)}';
     final originalText = (json['originalText'] as String?) ?? '';
     final analysis = (json['analysis'] as List<dynamic>?) ?? [];
+    final sourceType = (json['sourceType'] as String?) ?? 'PDF Document';
+    final fileData = json['fileData'] as String?;
+    final mimeType = json['mimeType'] as String?;
 
     Color riskColor = const Color(0xFF10B981);
     IconData riskIcon = Icons.check_circle_rounded;
@@ -1746,6 +1758,9 @@ class _RecentDocItem {
       docSize: docSize,
       originalText: originalText,
       analysis: analysis,
+      sourceType: sourceType,
+      fileData: fileData,
+      mimeType: mimeType,
     );
   }
 }
@@ -1811,6 +1826,21 @@ class _HoverDocumentRowState extends State<_HoverDocumentRow> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    IconData formatIcon = Icons.article_rounded;
+    Color formatColor = colorScheme.primary;
+
+    final sLower = widget.doc.sourceType.toLowerCase();
+    if (sLower.contains('photo') || sLower.contains('image')) {
+      formatIcon = Icons.image_rounded;
+      formatColor = const Color(0xFF8B5CF6);
+    } else if (sLower.contains('text')) {
+      formatIcon = Icons.notes_rounded;
+      formatColor = const Color(0xFF0EA5E9);
+    } else if (sLower.contains('pdf')) {
+      formatIcon = Icons.picture_as_pdf_rounded;
+      formatColor = const Color(0xFFEF4444);
+    }
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
@@ -1831,10 +1861,10 @@ class _HoverDocumentRowState extends State<_HoverDocumentRow> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  color: formatColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.description_outlined, color: colorScheme.primary, size: 20),
+                child: Icon(formatIcon, color: formatColor, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(

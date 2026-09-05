@@ -13,12 +13,12 @@ const transporter = nodemailer.createTransport({
 async function sendOTP(email, otp) {
   try {
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM,
+      from: process.env.SMTP_FROM || '"LawBuddy" <finalyearproject2513@gmail.com>',
       to: email,
-      subject: 'Your LexiScan Verification Code',
+      subject: 'Your LawBuddy Verification Code',
       html: `
         <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #171218; padding: 40px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); color: #ffffff;">
-          <h1 style="color: #ffffff; margin-bottom: 24px; text-align: center; font-size: 28px;">LexiScan AI</h1>
+          <h1 style="color: #ffffff; margin-bottom: 24px; text-align: center; font-size: 28px;">LawBuddy</h1>
           <div style="background-color: #211c22; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
             <h2 style="color: #ffffff; margin-top: 0; font-size: 20px;">Verify Your Email</h2>
             <p style="color: #a0a0a0; font-size: 16px; line-height: 1.5;">Hello,</p>
@@ -33,7 +33,7 @@ async function sendOTP(email, otp) {
           </div>
           
           <div style="margin-top: 30px; text-align: center;">
-            <p style="color: #666666; font-size: 12px;">This is an automated email sent by LexiScan AI. Please do not reply.</p>
+            <p style="color: #666666; font-size: 12px;">This is an automated email sent by LawBuddy. Please do not reply.</p>
           </div>
         </div>
       `

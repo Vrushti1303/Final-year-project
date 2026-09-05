@@ -21,7 +21,7 @@ class ApiService {
   }
 
 
-  static Future<Map<String, dynamic>> scanDocument(String text, {String? title}) async {
+  static Future<Map<String, dynamic>> scanDocument(String text, {String? title, String? sourceType, String? base64Data, String? mimeType}) async {
     final token = await _getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/scan'),
@@ -32,6 +32,9 @@ class ApiService {
       body: jsonEncode({
         'text': text,
         if (title != null && title.isNotEmpty) 'title': title,
+        if (sourceType != null && sourceType.isNotEmpty) 'sourceType': sourceType,
+        if (base64Data != null && base64Data.isNotEmpty) 'base64Data': base64Data,
+        if (mimeType != null && mimeType.isNotEmpty) 'mimeType': mimeType,
       }),
     );
     if (response.statusCode == 200) {
@@ -39,7 +42,46 @@ class ApiService {
     } else if (response.statusCode == 429) {
       throw RateLimitException('Rate limit reached. Please try again later.');
     } else {
-      throw Exception('Failed to analyze document');
+      String errorMessage = 'Failed to analyze document';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && (body['error'] != null || body['details'] != null)) {
+          errorMessage = body['error'] ?? body['details'];
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
+    }
+  }
+
+  static Future<Map<String, dynamic>> scanDocumentFile(Uint8List bytes, String mimeType, {String? title, String? sourceType}) async {
+    final token = await _getToken();
+    final String base64Data = base64Encode(bytes);
+    final response = await http.post(
+      Uri.parse('$baseUrl/scan-file'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'base64Data': base64Data,
+        'mimeType': mimeType,
+        if (title != null && title.isNotEmpty) 'title': title,
+        if (sourceType != null && sourceType.isNotEmpty) 'sourceType': sourceType,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else if (response.statusCode == 429) {
+      throw RateLimitException('Rate limit reached. Please try again later.');
+    } else {
+      String errorMessage = 'Failed to analyze document file';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && (body['error'] != null || body['details'] != null)) {
+          errorMessage = body['error'] ?? body['details'];
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
     }
   }
 

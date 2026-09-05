@@ -1,13 +1,40 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'file_saver/save_file.dart';
 
 class PdfExportService {
+  /// Cleans text so Syncfusion PdfStandardFont (Helvetica) never throws font encoding exceptions
+  static String _sanitizeText(String input) {
+    if (input.isEmpty) return '';
+    final String cleanSpecial = input
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll('‘', "'")
+        .replaceAll('’', "'")
+        .replaceAll('–', '-')
+        .replaceAll('—', '-')
+        .replaceAll('\u200B', '')
+        .replaceAll('\u00A0', ' ');
+
+    final StringBuffer buffer = StringBuffer();
+    for (final char in cleanSpecial.runes) {
+      if (char == 10 || char == 13 || char == 9 || (char >= 32 && char <= 126) || (char >= 160 && char <= 255)) {
+        buffer.writeCharCode(char);
+      } else {
+        buffer.write(' ');
+      }
+    }
+    return buffer.toString().replaceAll(RegExp(r' +'), ' ').trim();
+  }
+
   /// Generates and downloads/saves a professional Legal Risk Assessment PDF Report
   static Future<void> exportAnalysisPdf({
     required String documentTitle,
     required String originalText,
     required List<dynamic> analysis,
+    String sourceType = 'PDF Document',
+    String? fileData,
   }) async {
     // 1. Create a PDF document
     final PdfDocument document = PdfDocument();
@@ -49,7 +76,6 @@ class PdfExportService {
     // --- Header Section ---
     final PdfFont headerFont = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
     final PdfFont subHeaderFont = PdfStandardFont(PdfFontFamily.helvetica, 10);
-    final PdfFont sectionTitleFont = PdfStandardFont(PdfFontFamily.helvetica, 13, style: PdfFontStyle.bold);
     final PdfFont bodyFont = PdfStandardFont(PdfFontFamily.helvetica, 9.5);
     final PdfFont italicFont = PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.italic);
 
@@ -84,9 +110,10 @@ class PdfExportService {
     currentY += 26;
 
     // Document Metadata Subtitle
-    final cleanTitle = documentTitle.isNotEmpty ? documentTitle : 'Property Agreement';
+    final rawTitle = documentTitle.isNotEmpty ? documentTitle : 'Property Agreement';
+    final cleanTitle = _sanitizeText(rawTitle);
     page.graphics.drawString(
-      'Document: $cleanTitle   |   Generated: $dateFormatted',
+      'Document: ${cleanTitle.isNotEmpty ? cleanTitle : 'Property Contract'}   |   Type: $sourceType   |   Generated: $dateFormatted',
       subHeaderFont,
       brush: PdfSolidBrush(PdfColor(100, 116, 139)),
       bounds: Rect.fromLTWH(0, currentY, pageSize.width, 16),
@@ -142,64 +169,147 @@ class PdfExportService {
 
     currentY += 84;
 
-    // Section Header: Detailed Clause Analysis
-    page.graphics.drawString(
-      'Detailed Clause Analysis & RERA Compliance Breakdown',
-      sectionTitleFont,
-      brush: PdfSolidBrush(PdfColor(15, 23, 42)),
-      bounds: Rect.fromLTWH(0, currentY, pageSize.width, 20),
-    );
-    currentY += 24;
+    // --- Original Source Document & Text Excerpt Section ---
+    if (originalText.trim().isNotEmpty) {
+      final String cleanOriginal = _sanitizeText(originalText);
+      final String textExcerpt = cleanOriginal.length > 2000 
+          ? '${cleanOriginal.substring(0, 1997)}...' 
+          : cleanOriginal;
 
-    // --- Dynamic Clause Elements with Layout Pagination ---
-    final PdfLayoutFormat layoutFormat = PdfLayoutFormat(
-      layoutType: PdfLayoutType.paginate,
-    );
+      final PdfGrid sourceGrid = PdfGrid();
+      sourceGrid.columns.add(count: 1);
+      sourceGrid.columns[0].width = pageSize.width;
 
-    for (int i = 0; i < analysis.length; i++) {
-      final item = analysis[i];
-      final String category = (item['category'] ?? 'Standard').toString();
-      final String clauseText = (item['text'] ?? '').toString().trim();
-      final String reason = (item['reason'] ?? '').toString().trim();
-
-      String label = 'STANDARD CLAUSE';
-      if (category.toLowerCase().contains('red')) {
-        label = 'HIGH RISK / NON-COMPLIANT';
-      } else if (category.toLowerCase().contains('yellow')) {
-        label = 'CAUTION / MISSING SAFEGUARD';
-      }
-
-      // Clause Title & Badge String
-      final String blockText = 'Clause ${i + 1}: [$label]\n'
-          'Original Text:\n"$clauseText"\n\n'
-          'AI Assessment & Risk Rationale:\n$reason\n';
-
-      final PdfTextElement element = PdfTextElement(
-        text: blockText,
-        font: bodyFont,
-        brush: PdfSolidBrush(PdfColor(30, 41, 59)),
-        format: PdfStringFormat(lineSpacing: 3),
+      final PdfGridRow srcHeader = sourceGrid.headers.add(1)[0];
+      srcHeader.cells[0].value = 'Original Document / Text Description ($sourceType)';
+      srcHeader.cells[0].style = PdfGridCellStyle(
+        backgroundBrush: PdfSolidBrush(PdfColor(51, 65, 85)), // Slate 700
+        textBrush: PdfSolidBrush(PdfColor(255, 255, 255)),
+        font: PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        cellPadding: PdfPaddings(left: 10, top: 6, right: 10, bottom: 6),
       );
 
-      // Render block
-      final PdfLayoutResult? result = element.draw(
+      final PdfGridRow srcRow = sourceGrid.rows.add();
+      srcRow.cells[0].value = 'Document Source: $sourceType\n\n'
+          'Extracted Text / Description:\n"$textExcerpt"';
+      srcRow.cells[0].style = PdfGridCellStyle(
+        backgroundBrush: PdfSolidBrush(PdfColor(248, 250, 252)),
+        textBrush: PdfSolidBrush(PdfColor(30, 41, 59)),
+        font: PdfStandardFont(PdfFontFamily.helvetica, 9),
+        cellPadding: PdfPaddings(left: 10, top: 8, right: 10, bottom: 8),
+      );
+
+      final PdfLayoutResult srcResult = sourceGrid.draw(
         page: page,
-        bounds: Rect.fromLTWH(8, currentY, pageSize.width - 16, pageSize.height - currentY - 40),
-        format: layoutFormat,
-      );
+        bounds: Rect.fromLTWH(0, currentY, pageSize.width, 0),
+      )!;
 
-      if (result != null) {
-        page = result.page;
-        currentY = result.bounds.bottom + 16;
-      } else {
-        currentY += 60;
+      page = srcResult.page;
+      currentY = srcResult.bounds.bottom + 16;
+
+      if (fileData != null && fileData.isNotEmpty && sourceType == 'Photo Scan') {
+        try {
+          final List<int> imgBytes = base64Decode(fileData);
+          final PdfBitmap bitmap = PdfBitmap(imgBytes);
+          double imgW = pageSize.width;
+          double imgH = (bitmap.height / bitmap.width) * imgW;
+          if (imgH > 320) {
+            imgH = 320;
+            imgW = (bitmap.width / bitmap.height) * imgH;
+          }
+
+          if (currentY + imgH + 30 > pageSize.height) {
+            page = document.pages.add();
+            currentY = 0;
+          }
+
+          page.graphics.drawString(
+            'Original Scanned Photo / Image Preview:',
+            PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+            brush: PdfSolidBrush(PdfColor(15, 23, 42)),
+            bounds: Rect.fromLTWH(0, currentY, pageSize.width, 16),
+          );
+          currentY += 20;
+
+          page.graphics.drawImage(bitmap, Rect.fromLTWH(0, currentY, imgW, imgH));
+          currentY += imgH + 16;
+        } catch (imgErr) {
+          debugPrint('Error embedding photo scan image in PDF export: $imgErr');
+        }
       }
     }
 
-    // --- Footer / Disclaimer Section ---
+    // --- Detailed Clause Grid ---
+    final PdfGrid grid = PdfGrid();
+    grid.columns.add(count: 1);
+    grid.columns[0].width = pageSize.width;
+
+    // Grid Header
+    final PdfGridRow headerRow = grid.headers.add(1)[0];
+    headerRow.cells[0].value = 'Detailed Clause Analysis & RERA Risk Rationale';
+    headerRow.cells[0].style = PdfGridCellStyle(
+      backgroundBrush: PdfSolidBrush(PdfColor(15, 23, 42)),
+      textBrush: PdfSolidBrush(PdfColor(255, 255, 255)),
+      font: PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold),
+      cellPadding: PdfPaddings(left: 10, top: 8, right: 10, bottom: 8),
+    );
+
+    // Grid Rows
+    for (int i = 0; i < analysis.length; i++) {
+      final item = analysis[i];
+      final String category = (item['category'] ?? 'Standard').toString();
+      final String rawClauseText = (item['text'] ?? '').toString().trim();
+      final String rawReason = (item['reason'] ?? '').toString().trim();
+
+      final String clauseText = _sanitizeText(rawClauseText);
+      final String reason = _sanitizeText(rawReason);
+
+      String label = 'STANDARD / COMPLIANT';
+      PdfColor bgBadgeColor = PdfColor(241, 245, 249);
+
+      if (category.toLowerCase().contains('red')) {
+        label = 'HIGH RISK / NON-COMPLIANT';
+        bgBadgeColor = PdfColor(254, 242, 242);
+      } else if (category.toLowerCase().contains('yellow')) {
+        label = 'CAUTION / MISSING SAFEGUARD';
+        bgBadgeColor = PdfColor(255, 251, 235);
+      } else if (category.toLowerCase().contains('green')) {
+        label = 'STANDARD / COMPLIANT';
+        bgBadgeColor = PdfColor(236, 253, 245);
+      }
+
+      final String cellText = 'Clause ${i + 1}:  $label\n\n'
+          'Original Text:\n"${clauseText.isNotEmpty ? clauseText : rawClauseText}"\n\n'
+          'Risk Assessment & Rationale:\n${reason.isNotEmpty ? reason : rawReason}';
+
+      final PdfGridRow row = grid.rows.add();
+      row.cells[0].value = cellText;
+      row.cells[0].style = PdfGridCellStyle(
+        backgroundBrush: PdfSolidBrush(bgBadgeColor),
+        textBrush: PdfSolidBrush(PdfColor(15, 23, 42)),
+        font: PdfStandardFont(PdfFontFamily.helvetica, 9.5),
+        cellPadding: PdfPaddings(left: 12, top: 10, right: 12, bottom: 10),
+      );
+    }
+
+    // Draw grid natively
+    final PdfLayoutResult layoutResult = grid.draw(
+      page: page,
+      bounds: Rect.fromLTWH(0, currentY, pageSize.width, 0),
+    )!;
+
+    page = layoutResult.page;
+    currentY = layoutResult.bounds.bottom + 20;
+
+    // Disclaimer
+    if (page.getClientSize().height - currentY < 40) {
+      page = document.pages.add();
+      currentY = 20;
+    }
+
     const String disclaimer =
-        'Disclaimer: This report is generated by an Artificial Intelligence model for preliminary advisory & negotiation guidance only. '
-        'It does not constitute formal legal representation under the Advocates Act, 1961. Always consult a registered property advocate for legal execution.';
+        'Disclaimer: This report is generated by AI for advisory & negotiation guidance only. '
+        'It does not constitute formal legal representation under the Advocates Act, 1961. Always consult a registered property advocate.';
 
     final PdfTextElement disclaimerElement = PdfTextElement(
       text: disclaimer,
@@ -210,7 +320,7 @@ class PdfExportService {
 
     disclaimerElement.draw(
       page: page,
-      bounds: Rect.fromLTWH(0, page.getClientSize().height - 35, page.getClientSize().width, 35),
+      bounds: Rect.fromLTWH(0, page.getClientSize().height - 30, page.getClientSize().width, 30),
     );
 
     // 4. Save and export file
