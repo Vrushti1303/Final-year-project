@@ -246,19 +246,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                                   LayoutBuilder(
                                     builder: (context, constraints) {
                                       if (constraints.maxWidth > 860) {
-                                        return Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              flex: 3,
-                                              child: _buildRecentDocumentsSection(context, colorScheme, isDark),
-                                            ),
-                                            const SizedBox(width: 24),
-                                            Expanded(
-                                              flex: 2,
-                                              child: _buildLegalNewsSection(context, colorScheme, isDark),
-                                            ),
-                                          ],
+                                        return IntrinsicHeight(
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: [
+                                              Expanded(
+                                                child: _buildRecentDocumentsSection(context, colorScheme, isDark),
+                                              ),
+                                              const SizedBox(width: 24),
+                                              Expanded(
+                                                child: _buildLegalNewsSection(context, colorScheme, isDark),
+                                              ),
+                                            ],
+                                          ),
                                         );
                                       } else {
                                         return Column(
@@ -628,22 +628,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               // 2x2 Grid Layout for Desktop & Tablet
               return Column(
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
-                    ],
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
-                    ],
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
+                      ],
+                    ),
                   ),
                 ],
               );
@@ -1035,54 +1039,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             )
           else if (filteredDocs.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 36.0, horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.description_outlined,
-                        size: 32,
+                        size: 28,
                         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     Text(
                       _searchQuery.isNotEmpty
                           ? 'No matching documents found'
                           : 'No agreements scanned yet',
                       style: TextStyle(
                         color: colorScheme.onSurface,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       _searchQuery.isNotEmpty
                           ? 'Try searching with another keyword'
-                          : 'Upload or scan your property sale deed, lease, or builder agreement for AI risk assessment.',
+                          : 'Upload or scan your property agreement for AI risk assessment.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
-                        height: 1.4,
+                        height: 1.35,
                       ),
                     ),
                     if (_searchQuery.isEmpty) ...[
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => _navigateTo(const ScanScreen()),
-                        icon: const Icon(Icons.document_scanner_rounded, size: 16),
+                        icon: const Icon(Icons.document_scanner_rounded, size: 15),
                         label: const Text('Scan or Upload Agreement'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -1092,99 +1096,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               ),
             )
           else ...[
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredDocs.take(3).length,
-              separatorBuilder: (context, index) => Divider(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-                height: 1,
-              ),
-              itemBuilder: (context, index) {
-                final doc = filteredDocs[index];
-                return _HoverDocumentRow(
-                  doc: doc,
-                  isDark: isDark,
-                  onTap: () {
-                    if (doc.analysis.isNotEmpty && doc.originalText.isNotEmpty) {
-                      _navigateTo(
-                        AnalysisScreen(
-                          originalText: doc.originalText,
-                          analysis: doc.analysis,
-                          documentTitle: doc.title,
-                          sourceType: doc.sourceType,
-                          fileData: doc.fileData,
-                          mimeType: doc.mimeType,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Opening ${doc.title}...'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-                );
-              },
-            ),
-
-            const SizedBox(height: 14),
-
-            // Quick Upload / Scan Action to balance card heights with news section
-            InkWell(
-              onTap: () => _navigateTo(const ScanScreen()),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.2),
-                  ),
+            for (int i = 0; i < filteredDocs.take(3).length; i++) ...[
+              if (i > 0)
+                Divider(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                  height: 1,
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
+              _HoverDocumentRow(
+                doc: filteredDocs[i],
+                isDark: isDark,
+                onTap: () {
+                  if (filteredDocs[i].analysis.isNotEmpty && filteredDocs[i].originalText.isNotEmpty) {
+                    _navigateTo(
+                      AnalysisScreen(
+                        originalText: filteredDocs[i].originalText,
+                        analysis: filteredDocs[i].analysis,
+                        documentTitle: filteredDocs[i].title,
+                        sourceType: filteredDocs[i].sourceType,
+                        fileData: filteredDocs[i].fileData,
+                        mimeType: filteredDocs[i].mimeType,
                       ),
-                      child: Icon(Icons.add_circle_outline_rounded, size: 16, color: colorScheme.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Scan or Upload New Document',
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            'Instant AI risk assessment & clause breakdown',
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Opening ${filteredDocs[i].title}...'),
+                        duration: const Duration(seconds: 1),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_rounded, size: 14, color: colorScheme.primary),
-                  ],
-                ),
+                    );
+                  }
+                },
               ),
-            ),
+            ],
           ],
         ],
       ),
@@ -1290,34 +1233,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 ),
               ),
             )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredNews.take(3).length,
-              separatorBuilder: (context, index) => Divider(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-                height: 1,
+          else ...[
+            for (int i = 0; i < filteredNews.take(3).length; i++) ...[
+              if (i > 0)
+                Divider(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                  height: 1,
+                ),
+              _HoverNewsRow(
+                title: (filteredNews[i]['title'] ?? 'Legal Notice').toString(),
+                source: (filteredNews[i]['source'] ?? 'Legal News').toString(),
+                time: _formatRelativeTime(filteredNews[i]['pubDate']),
+                isNew: i == 0 || (filteredNews[i]['isWarning'] == true),
+                link: (filteredNews[i]['link'] ?? '').toString(),
+                isDark: isDark,
               ),
-              itemBuilder: (context, index) {
-                final item = filteredNews[index];
-                final title = (item['title'] ?? 'Legal Notice').toString();
-                final source = (item['source'] ?? 'Legal News').toString();
-                final pubDate = item['pubDate'];
-                final timeStr = _formatRelativeTime(pubDate);
-                final isNew = index == 0 || (item['isWarning'] == true);
-                final link = (item['link'] ?? '').toString();
-
-                return _HoverNewsRow(
-                  title: title,
-                  source: source,
-                  time: timeStr,
-                  isNew: isNew,
-                  link: link,
-                  isDark: isDark,
-                );
-              },
-            ),
+            ],
+          ],
         ],
       ),
     );
@@ -1859,12 +1791,12 @@ class _HoverDocumentRowState extends State<_HoverDocumentRow> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: formatColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(formatIcon, color: formatColor, size: 20),
+                child: Icon(formatIcon, color: formatColor, size: 21),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1873,15 +1805,19 @@ class _HoverDocumentRowState extends State<_HoverDocumentRow> {
                   children: [
                     Text(
                       widget.doc.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      '${widget.doc.dateText} • ${widget.doc.docSize}',
+                      '${widget.doc.sourceType} • ${widget.doc.dateText} • ${widget.doc.docSize}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
@@ -1980,7 +1916,7 @@ class _HoverNewsRowState extends State<_HoverNewsRow> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: _isHovered
                 ? (widget.isDark ? const Color(0xFF263549) : const Color(0xFFF1F5F9))
@@ -1988,83 +1924,69 @@ class _HoverNewsRowState extends State<_HoverNewsRow> {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  color: colorScheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.article_outlined, color: colorScheme.primary, size: 16),
+                child: Icon(Icons.feed_outlined, color: colorScheme.primary, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          widget.source,
-                          style: TextStyle(
-                            color: colorScheme.primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (widget.isNew) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: colorScheme.tertiary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'NEW',
-                              style: TextStyle(
-                                color: colorScheme.tertiary,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       widget.title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      widget.time,
+                      '${widget.source} • ${widget.time}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
-                        fontSize: 11,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
+              if (widget.isNew) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'NEW',
+                    style: TextStyle(
+                      color: colorScheme.tertiary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(width: 8),
               AnimatedSlide(
                 offset: _isHovered ? const Offset(0.2, 0) : Offset.zero,
                 duration: const Duration(milliseconds: 180),
                 child: Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 16,
-                  color: _isHovered ? colorScheme.primary : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: _isHovered ? colorScheme.primary : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
               ),
             ],

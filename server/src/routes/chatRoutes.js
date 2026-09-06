@@ -1,25 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const llmService = require('../services/llmService');
 const ChatSession = require('../models/ChatSession');
+const { requireAuth } = require('../middleware/authMiddleware');
 
-function getUserIdFromReq(req) {
-    const authHeader = req.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-            const token = authHeader.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key_here');
-            if (decoded && decoded.userId) return decoded.userId;
-        } catch (e) {
-            // ignore token error, fallback
-        }
-    }
-    return (req.body && req.body.userId) ? req.body.userId : 'usr_ms7rjm9vn6ins';
-}
-
-// 1. Send chat message & optionally persist to a ChatSession
-router.post('/chat', async (req, res) => {
+// 1. Send chat message & persist to a ChatSession for authenticated user
+router.post('/chat', requireAuth, async (req, res) => {
     try {
         const { history, sessionId } = req.body;
         if (!history || !Array.isArray(history) || history.length === 0) {
@@ -27,7 +13,7 @@ router.post('/chat', async (req, res) => {
         }
 
         const response = await llmService.chat(history);
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
 
         let activeSessionId = sessionId;
 
@@ -93,9 +79,9 @@ router.post('/chat', async (req, res) => {
 });
 
 // 2. Get all chat sessions for user
-router.get('/chat/sessions', async (req, res) => {
+router.get('/chat/sessions', requireAuth, async (req, res) => {
     try {
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
         const sessions = await ChatSession.find({ userId })
             .sort({ updatedAt: -1 })
             .select('_id title messages updatedAt createdAt')
@@ -121,9 +107,9 @@ router.get('/chat/sessions', async (req, res) => {
 });
 
 // 3. Get single chat session with full message history
-router.get('/chat/sessions/:id', async (req, res) => {
+router.get('/chat/sessions/:id', requireAuth, async (req, res) => {
     try {
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
         const session = await ChatSession.findOne({ _id: req.params.id, userId });
         if (!session) {
             return res.status(404).json({ error: 'Chat session not found' });
@@ -142,9 +128,9 @@ router.get('/chat/sessions/:id', async (req, res) => {
 });
 
 // 4. Delete a chat session
-router.delete('/chat/sessions/:id', async (req, res) => {
+router.delete('/chat/sessions/:id', requireAuth, async (req, res) => {
     try {
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
         const result = await ChatSession.deleteOne({ _id: req.params.id, userId });
         if (result.deletedCount === 0) {
             return res.status(404).json({ error: 'Session not found or already deleted' });

@@ -26,7 +26,7 @@ function requireAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key_here');
     req.user = decoded;
     next();
   } catch (err) {
@@ -34,9 +34,24 @@ function requireAuth(req, res, next) {
   }
 }
 
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key_here');
+      req.user = decoded;
+    } catch (err) {
+      // invalid token, proceed without req.user
+    }
+  }
+  next();
+}
+
 module.exports = {
   isValidEmail,
   isValidPhone,
   sanitizeInput,
-  requireAuth
+  requireAuth,
+  optionalAuth
 };

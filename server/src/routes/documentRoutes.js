@@ -1,31 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const llmService = require('../services/llmService');
 const Document = require('../models/Document');
+const { requireAuth } = require('../middleware/authMiddleware');
 
-function getUserIdFromReq(req) {
-    const authHeader = req.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-            const token = authHeader.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key_here');
-            if (decoded && decoded.userId) return decoded.userId;
-        } catch (e) {
-            // ignore token error, fallback
-        }
-    }
-    return (req.body && req.body.userId) ? req.body.userId : 'usr_ms7rjm9vn6ins'; // Default to Vrushti Patel's userId
-}
-
-router.post('/scan', async (req, res) => {
+// POST /api/scan
+router.post('/scan', requireAuth, async (req, res) => {
     try {
         const { text, title: customTitle, sourceType = 'Text Description', base64Data = null, mimeType = 'text/plain' } = req.body;
         if (!text) {
             return res.status(400).json({ error: 'Text is required' });
         }
         const analysis = await llmService.analyzeContract(text);
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
 
         // Derive overall risk level
         const items = analysis.analysis || [];
@@ -45,8 +32,8 @@ router.post('/scan', async (req, res) => {
 
         // Calculate doc size
         const bytes = Buffer.byteLength(text, 'utf8');
-        const docSize = bytes >= 1048576 
-            ? `${(bytes / 1048576).toFixed(1)} MB` 
+        const docSize = bytes >= 1048576
+            ? `${(bytes / 1048576).toFixed(1)} MB`
             : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
         // Safe DB fileData string (MongoDB 16MB BSON doc cap)
@@ -76,7 +63,7 @@ router.post('/scan', async (req, res) => {
                 createdAt: new Date()
             });
             savedDoc = await newDoc.save();
-            console.log(`[DB SUCCESS] Saved document "${title}" (ID: ${savedDoc._id}) to Recent Documents.`);
+            console.log(`[DB SUCCESS] Saved document "${title}" (ID: ${savedDoc._id}) for user ${userId}.`);
         } catch (dbErr) {
             console.warn('Failed to save document to DB with fileData, retrying without fileData:', dbErr.message);
             try {
@@ -94,7 +81,7 @@ router.post('/scan', async (req, res) => {
                     createdAt: new Date()
                 });
                 savedDoc = await fallbackDoc.save();
-                console.log(`[DB FALLBACK SUCCESS] Saved document "${title}" (ID: ${savedDoc._id}) to Recent Documents.`);
+                console.log(`[DB FALLBACK SUCCESS] Saved document "${title}" (ID: ${savedDoc._id}) for user ${userId}.`);
             } catch (fallbackErr) {
                 console.error('Critical DB save error:', fallbackErr.message);
             }
@@ -117,7 +104,8 @@ router.post('/scan', async (req, res) => {
     }
 });
 
-router.post('/scan-file', async (req, res) => {
+// POST /api/scan-file
+router.post('/scan-file', requireAuth, async (req, res) => {
     try {
         const { base64Data, mimeType, title: customTitle, sourceType: reqSourceType } = req.body;
         if (!base64Data) {
@@ -136,7 +124,7 @@ router.post('/scan-file', async (req, res) => {
         const result = await llmService.analyzeContractFile(base64Data, mimeType || 'image/jpeg');
         const extractedText = result.extractedText || 'Scanned Property Document';
         const items = result.analysis || [];
-        const userId = getUserIdFromReq(req);
+        const userId = req.user.userId;
 
         // Derive overall risk level
         let riskLevel = 'Low Risk';
@@ -155,8 +143,8 @@ router.post('/scan-file', async (req, res) => {
 
         // Calculate doc size
         const rawBytes = Math.round((base64Data.length * 3) / 4);
-        const docSize = rawBytes >= 1048576 
-            ? `${(rawBytes / 1048576).toFixed(1)} MB` 
+        const docSize = rawBytes >= 1048576
+            ? `${(rawBytes / 1048576).toFixed(1)} MB`
             : `${Math.max(1, Math.round(rawBytes / 1024))} KB`;
 
         // Safe DB fileData string (MongoDB 16MB BSON doc cap)
@@ -186,7 +174,7 @@ router.post('/scan-file', async (req, res) => {
                 createdAt: new Date()
             });
             savedDoc = await newDoc.save();
-            console.log(`[DB SUCCESS] Saved document file "${title}" (ID: ${savedDoc._id}) to Recent Documents.`);
+            console.log(`[DB SUCCESS] Saved document file "${title}" (ID: ${savedDoc._id}) for user ${userId}.`);
         } catch (dbErr) {
             console.warn('Failed to save document file to DB with fileData, retrying without fileData:', dbErr.message);
             try {
@@ -204,7 +192,7 @@ router.post('/scan-file', async (req, res) => {
                     createdAt: new Date()
                 });
                 savedDoc = await fallbackDoc.save();
-                console.log(`[DB FALLBACK SUCCESS] Saved document file "${title}" (ID: ${savedDoc._id}) to Recent Documents.`);
+                console.log(`[DB FALLBACK SUCCESS] Saved document file "${title}" (ID: ${savedDoc._id}) for user ${userId}.`);
             } catch (fallbackErr) {
                 console.error('Critical DB file save error:', fallbackErr.message);
             }
@@ -228,14 +216,11 @@ router.post('/scan-file', async (req, res) => {
     }
 });
 
-router.get('/documents', async (req, res) => {
+// GET /api/documents (Strictly scoped to authenticated user)
+router.get('/documents', requireAuth, async (req, res) => {
     try {
-        const userId = getUserIdFromReq(req);
-        // Find docs for current user, or fallback to recent docs in system if user has none
-        let docs = await Document.find({ userId }).sort({ createdAt: -1 }).limit(10);
-        if (docs.length === 0) {
-            docs = await Document.find({}).sort({ createdAt: -1 }).limit(10);
-        }
+        const userId = req.user.userId;
+        const docs = await Document.find({ userId }).sort({ createdAt: -1 });
         res.json(docs);
     } catch (error) {
         console.error('Error fetching documents:', error);
@@ -243,9 +228,11 @@ router.get('/documents', async (req, res) => {
     }
 });
 
-router.get('/documents/:id', async (req, res) => {
+// GET /api/documents/:id (Strictly scoped to authenticated user)
+router.get('/documents/:id', requireAuth, async (req, res) => {
     try {
-        const doc = await Document.findById(req.params.id);
+        const userId = req.user.userId;
+        const doc = await Document.findOne({ _id: req.params.id, userId });
         if (!doc) {
             return res.status(404).json({ error: 'Document not found' });
         }
@@ -256,6 +243,22 @@ router.get('/documents/:id', async (req, res) => {
     }
 });
 
+// DELETE /api/documents/:id (Strictly scoped to authenticated user)
+router.delete('/documents/:id', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const result = await Document.findOneAndDelete({ _id: req.params.id, userId });
+        if (!result) {
+            return res.status(404).json({ error: 'Document not found or unauthorized' });
+        }
+        res.json({ message: 'Document deleted successfully', id: req.params.id });
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        res.status(500).json({ error: 'Failed to delete document', details: error.message });
+    }
+});
+
+// POST /api/explain
 router.post('/explain', async (req, res) => {
     try {
         const { context, snippet } = req.body;
