@@ -22,8 +22,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   List<_RecentDocItem> _recentDocs = [];
   List<dynamic> _checklists = [];
@@ -109,7 +107,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   @override
   void dispose() {
     _animationController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -388,72 +385,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
                   SizedBox(width: isMobile ? 8 : 20),
 
-                  // Center Search Bar
-                  if (!isNarrow)
-                    Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 420),
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-                                width: 1.0,
-                              ),
-                              boxShadow: isDark
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.02),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
-                              onChanged: (val) {
-                                setState(() {
-                                  _searchQuery = val.trim();
-                                });
-                              },
-                              decoration: InputDecoration(
-                                isDense: true,
-                                hintText: 'Search documents, agreements, laws...',
-                                hintStyle: TextStyle(
-                                  fontSize: 13,
-                                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search_rounded,
-                                  size: 18,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                suffixIcon: _searchQuery.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.close_rounded, size: 16),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          setState(() => _searchQuery = '');
-                                        },
-                                      )
-                                    : null,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    const Spacer(),
+                  const Spacer(),
 
                   // Right Nav Actions
                   Row(
@@ -968,13 +900,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   }
 
   // ==========================================
-  // 5. RECENT DOCUMENTS SECTION
-  // ==========================================
   Widget _buildRecentDocumentsSection(BuildContext context, ColorScheme colorScheme, bool isDark) {
-    // Filter documents if search query is active
-    final filteredDocs = _searchQuery.isEmpty
-        ? _recentDocs
-        : _recentDocs.where((d) => d.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final docs = _recentDocs;
 
     return Container(
       decoration: BoxDecoration(
@@ -1037,7 +964,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               padding: EdgeInsets.all(28.0),
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             )
-          else if (filteredDocs.isEmpty)
+          else if (docs.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
               child: Center(
@@ -1058,9 +985,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _searchQuery.isNotEmpty
-                          ? 'No matching documents found'
-                          : 'No agreements scanned yet',
+                      'No agreements scanned yet',
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontSize: 14,
@@ -1069,9 +994,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _searchQuery.isNotEmpty
-                          ? 'Try searching with another keyword'
-                          : 'Upload or scan your property agreement for AI risk assessment.',
+                      'Upload or scan your property agreement for AI risk assessment.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
@@ -1079,48 +1002,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         height: 1.35,
                       ),
                     ),
-                    if (_searchQuery.isEmpty) ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => _navigateTo(const ScanScreen()),
-                        icon: const Icon(Icons.document_scanner_rounded, size: 15),
-                        label: const Text('Scan or Upload Agreement'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => _navigateTo(const ScanScreen()),
+                      icon: const Icon(Icons.document_scanner_rounded, size: 15),
+                      label: const Text('Scan or Upload Agreement'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
             )
           else ...[
-            for (int i = 0; i < filteredDocs.take(3).length; i++) ...[
+            for (int i = 0; i < docs.take(3).length; i++) ...[
               if (i > 0)
                 Divider(
                   color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                   height: 1,
                 ),
               _HoverDocumentRow(
-                doc: filteredDocs[i],
+                doc: docs[i],
                 isDark: isDark,
                 onTap: () {
-                  if (filteredDocs[i].analysis.isNotEmpty && filteredDocs[i].originalText.isNotEmpty) {
+                  if (docs[i].analysis.isNotEmpty && docs[i].originalText.isNotEmpty) {
                     _navigateTo(
                       AnalysisScreen(
-                        originalText: filteredDocs[i].originalText,
-                        analysis: filteredDocs[i].analysis,
-                        documentTitle: filteredDocs[i].title,
-                        sourceType: filteredDocs[i].sourceType,
-                        fileData: filteredDocs[i].fileData,
-                        mimeType: filteredDocs[i].mimeType,
+                        originalText: docs[i].originalText,
+                        analysis: docs[i].analysis,
+                        documentTitle: docs[i].title,
+                        sourceType: docs[i].sourceType,
+                        fileData: docs[i].fileData,
+                        mimeType: docs[i].mimeType,
                       ),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Opening ${filteredDocs[i].title}...'),
+                        content: Text('Opening ${docs[i].title}...'),
                         duration: const Duration(seconds: 1),
                       ),
                     );
@@ -1138,14 +1059,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   // 6. LATEST LEGAL UPDATES SECTION
   // ==========================================
   Widget _buildLegalNewsSection(BuildContext context, ColorScheme colorScheme, bool isDark) {
-    // Filter news if search query is active
-    final filteredNews = _searchQuery.isEmpty
-        ? _legalNews
-        : _legalNews.where((n) {
-            final title = (n['title'] ?? '').toString().toLowerCase();
-            final source = (n['source'] ?? '').toString().toLowerCase();
-            return title.contains(_searchQuery.toLowerCase()) || source.contains(_searchQuery.toLowerCase());
-          }).toList();
+    final news = _legalNews;
 
     return Container(
       decoration: BoxDecoration(
@@ -1221,31 +1135,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               padding: EdgeInsets.all(28.0),
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             )
-          else if (filteredNews.isEmpty)
+          else if (news.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Center(
                 child: Text(
-                  _searchQuery.isNotEmpty
-                      ? 'No updates matching "$_searchQuery"'
-                      : 'No legal updates available at this moment',
+                  'No legal updates available at this moment',
                   style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
                 ),
               ),
             )
           else ...[
-            for (int i = 0; i < filteredNews.take(3).length; i++) ...[
+            for (int i = 0; i < news.take(3).length; i++) ...[
               if (i > 0)
                 Divider(
                   color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                   height: 1,
                 ),
               _HoverNewsRow(
-                title: (filteredNews[i]['title'] ?? 'Legal Notice').toString(),
-                source: (filteredNews[i]['source'] ?? 'Legal News').toString(),
-                time: _formatRelativeTime(filteredNews[i]['pubDate']),
-                isNew: i == 0 || (filteredNews[i]['isWarning'] == true),
-                link: (filteredNews[i]['link'] ?? '').toString(),
+                title: (news[i]['title'] ?? 'Legal Notice').toString(),
+                source: (news[i]['source'] ?? 'Legal News').toString(),
+                time: _formatRelativeTime(news[i]['pubDate']),
+                isNew: i == 0 || (news[i]['isWarning'] == true),
+                link: (news[i]['link'] ?? '').toString(),
                 isDark: isDark,
               ),
             ],

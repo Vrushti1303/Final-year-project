@@ -417,7 +417,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Original uploaded contract file & extracted text',
+                                  'Original uploaded contract file',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -504,39 +504,41 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                         }),
                       ],
 
-                      // Inline Extracted Contract Text Display
-                      Text(
-                        'Extracted Contract Text:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        width: double.infinity,
-                        constraints: const BoxConstraints(maxHeight: 220),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      // Show text box only for pure text input scans without an uploaded file/image
+                      if (widget.fileData == null || widget.fileData!.isEmpty) ...[
+                        Text(
+                          'Original Contract Text:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                           ),
                         ),
-                        child: SingleChildScrollView(
-                          child: SelectableText(
-                            widget.originalText,
-                            style: TextStyle(
-                              fontSize: 13,
-                              height: 1.6,
-                              fontFamily: 'monospace',
-                              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxHeight: 220),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: SingleChildScrollView(
+                            child: SelectableText(
+                              widget.originalText,
+                              style: TextStyle(
+                                fontSize: 13,
+                                height: 1.6,
+                                fontFamily: 'monospace',
+                                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
