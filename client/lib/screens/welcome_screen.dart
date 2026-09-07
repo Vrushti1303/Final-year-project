@@ -1367,39 +1367,7 @@ class _HeroDocumentScanVisualState extends State<_HeroDocumentScanVisual>
           duration: const Duration(milliseconds: 300),
           transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
           constraints: BoxConstraints(maxWidth: isDesktop ? 540 : (isTablet ? 460 : 360)),
-          child: Transform.rotate(
-            angle: isDesktop ? -0.016 : -0.010,
-            alignment: Alignment.center,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Secondary Layered Document Edge
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  right: -8,
-                  bottom: -8,
-                  child: Transform.rotate(
-                    angle: 0.018,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF162B43).withValues(alpha: 0.85)
-                            : const Color(0xFFF4EFE0).withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDark
-                              ? const Color(0xFF334356).withValues(alpha: 0.5)
-                              : const Color(0xFFE4DDD0),
-                          width: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Main Active Document Card
-                Container(
+          child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
@@ -1713,12 +1681,9 @@ class _HeroDocumentScanVisualState extends State<_HeroDocumentScanVisual>
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
 
