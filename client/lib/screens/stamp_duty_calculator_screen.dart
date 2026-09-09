@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../widgets/theme_toggle_button.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../widgets/user_profile_button.dart';
 import '../services/api_service.dart';
+import '../providers/locale_provider.dart';
 
-class StampDutyCalculatorScreen extends StatefulWidget {
+class StampDutyCalculatorScreen extends ConsumerStatefulWidget {
   const StampDutyCalculatorScreen({super.key});
 
   @override
-  State<StampDutyCalculatorScreen> createState() => _StampDutyCalculatorScreenState();
+  ConsumerState<StampDutyCalculatorScreen> createState() => _StampDutyCalculatorScreenState();
 }
 
-class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
+class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _propertyValueController = TextEditingController();
@@ -70,9 +72,49 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     super.dispose();
   }
 
+  String _getPropertyTypeDisplay(String type, LocaleNotifier loc) {
+    switch (type) {
+      case 'Residential':
+        return loc.translate('calc.typeResidential');
+      case 'Commercial':
+        return loc.translate('calc.typeCommercial');
+      case 'Agricultural':
+        return loc.translate('calc.typeAgricultural');
+      case 'Other':
+        return loc.translate('calc.typeOther');
+      default:
+        return type;
+    }
+  }
+
+  String _getGenderDisplay(String gender, LocaleNotifier loc) {
+    switch (gender) {
+      case 'Male':
+        return loc.translate('calc.genderMale');
+      case 'Female':
+        return loc.translate('calc.genderFemale');
+      case 'Joint':
+        return loc.translate('calc.genderJoint');
+      default:
+        return gender;
+    }
+  }
+
+  String _getYesNoDisplay(String opt, LocaleNotifier loc) {
+    switch (opt) {
+      case 'Yes':
+        return loc.translate('calc.yes');
+      case 'No':
+        return loc.translate('calc.no');
+      default:
+        return opt;
+    }
+  }
+
   // State-specific and Property-type-specific calculation logic configuration
   void _calculateStampDuty() {
     FocusScope.of(context).unfocus();
+    final loc = ref.read(localeProvider.notifier);
 
     if (!_formKey.currentState!.validate()) {
       return;
@@ -83,9 +125,9 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
 
     if (_selectedPropertyType == null || _selectedState == null || _selectedGender == null || _isFirstTimeBuyer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select options for all dropdown fields.'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(loc.translate('calc.fillAllError')),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -93,9 +135,9 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
 
     if (propVal <= 0 && circleVal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid Agreement Value or Circle Rate.'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(loc.translate('calc.validValueError')),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -240,7 +282,9 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color goldAccent = isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B);
+    final goldAccent = isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B);
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     return Scaffold(
       body: Container(
@@ -264,7 +308,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context, colorScheme, isDark),
+              _buildHeader(context, colorScheme, isDark, loc),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
@@ -274,13 +318,13 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildCalculatorFormCard(context, colorScheme, isDark, goldAccent),
+                          _buildCalculatorFormCard(context, colorScheme, isDark, goldAccent, loc),
                           if (_hasCalculated) ...[
                             const SizedBox(height: 28),
-                            _buildResultSummaryCard(context, colorScheme, isDark, goldAccent),
+                            _buildResultSummaryCard(context, colorScheme, isDark, goldAccent, loc),
                           ],
                           const SizedBox(height: 24),
-                          _buildDisclaimerBox(context, colorScheme, isDark),
+                          _buildDisclaimerBox(context, colorScheme, isDark, loc),
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -295,7 +339,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, bool isDark) {
+  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, bool isDark, LocaleNotifier loc) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
@@ -335,7 +379,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Stamp Duty Calculator',
+                      loc.translate('calc.screenTitle'),
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
@@ -344,7 +388,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                       ),
                     ),
                     Text(
-                      'Calculate estimated stamp duty and registration charges for your property transaction.',
+                      loc.translate('calc.screenSubtitle'),
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
@@ -355,7 +399,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              const ThemeToggleButton(),
+              const UserProfileButton(),
             ],
           ),
         ),
@@ -363,7 +407,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     );
   }
 
-  Widget _buildCalculatorFormCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent) {
+  Widget _buildCalculatorFormCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent, LocaleNotifier loc) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
@@ -397,13 +441,15 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   child: Icon(Icons.calculate_rounded, color: purpleAccent, size: 22),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Calculate Stamp Duty & Registration Charges',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
+                Expanded(
+                  child: Text(
+                    loc.translate('calc.cardTitle'),
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
               ],
@@ -415,10 +461,11 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                 final isTwoCol = constraints.maxWidth > 560;
 
                 Widget propertyTypeField = _buildDropdownField(
-                  label: 'Property Type',
+                  label: loc.translate('calc.propertyType'),
                   value: _selectedPropertyType,
-                  hintText: 'Select property type',
+                  hintText: loc.translate('calc.selectPropertyType'),
                   items: _propertyTypes,
+                  itemLabelBuilder: (val) => _getPropertyTypeDisplay(val, loc),
                   icon: Icons.home_work_rounded,
                   colorScheme: colorScheme,
                   isDark: isDark,
@@ -426,9 +473,9 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                 );
 
                 Widget stateField = _buildDropdownField(
-                  label: 'State',
+                  label: loc.translate('calc.state'),
                   value: _selectedState,
-                  hintText: 'Select state',
+                  hintText: loc.translate('calc.selectState'),
                   items: _states,
                   icon: Icons.location_on_rounded,
                   colorScheme: colorScheme,
@@ -437,40 +484,41 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                 );
 
                 Widget propertyValueField = _buildTextField(
-                  label: 'Agreement Value (₹)',
-                  hint: 'Enter agreement value',
+                  label: loc.translate('calc.agreementValue'),
+                  hint: loc.translate('calc.enterAgreementValue'),
                   controller: _propertyValueController,
                   icon: Icons.currency_rupee_rounded,
                   colorScheme: colorScheme,
                   isDark: isDark,
                   validator: (val) {
                     if ((val == null || val.trim().isEmpty) && _circleRateController.text.trim().isEmpty) {
-                      return 'Enter agreement value';
+                      return loc.translate('calc.enterAgreementValue');
                     }
                     return null;
                   },
                 );
 
                 Widget circleRateField = _buildTextField(
-                  label: 'Circle Rate / Market Value (₹)',
-                  hint: 'Enter circle/market value',
+                  label: loc.translate('calc.circleRate'),
+                  hint: loc.translate('calc.enterCircleRate'),
                   controller: _circleRateController,
                   icon: Icons.account_balance_rounded,
                   colorScheme: colorScheme,
                   isDark: isDark,
                   validator: (val) {
                     if ((val == null || val.trim().isEmpty) && _propertyValueController.text.trim().isEmpty) {
-                      return 'Enter circle/market value';
+                      return loc.translate('calc.enterCircleRate');
                     }
                     return null;
                   },
                 );
 
                 Widget genderField = _buildDropdownField(
-                  label: 'Gender',
+                  label: loc.translate('calc.gender'),
                   value: _selectedGender,
-                  hintText: 'Select gender',
+                  hintText: loc.translate('calc.selectGender'),
                   items: _genders,
+                  itemLabelBuilder: (val) => _getGenderDisplay(val, loc),
                   icon: Icons.person_rounded,
                   colorScheme: colorScheme,
                   isDark: isDark,
@@ -478,10 +526,11 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                 );
 
                 Widget firstTimeBuyerField = _buildDropdownField(
-                  label: 'First-Time Buyer?',
+                  label: loc.translate('calc.firstTimeBuyer'),
                   value: _isFirstTimeBuyer,
-                  hintText: 'Select option',
+                  hintText: loc.translate('calc.selectOption'),
                   items: _yesNoOptions,
+                  itemLabelBuilder: (val) => _getYesNoDisplay(val, loc),
                   icon: Icons.verified_user_rounded,
                   colorScheme: colorScheme,
                   isDark: isDark,
@@ -559,14 +608,14 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                         shadowColor: purpleAccent.withValues(alpha: 0.3),
                       ),
                       onPressed: _calculateStampDuty,
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.calculate_rounded, size: 18),
-                          SizedBox(width: 8),
+                          const Icon(Icons.calculate_rounded, size: 18),
+                          const SizedBox(width: 8),
                           Text(
-                            'Calculate',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                            loc.translate('calc.calculateBtn'),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -589,14 +638,14 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                         ),
                       ),
                       onPressed: _resetForm,
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.restart_alt_rounded, size: 18),
-                          SizedBox(width: 6),
+                          const Icon(Icons.restart_alt_rounded, size: 18),
+                          const SizedBox(width: 6),
                           Text(
-                            'Reset',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            loc.translate('calc.resetBtn'),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -616,6 +665,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     required String? value,
     required String hintText,
     required List<String> items,
+    String Function(String)? itemLabelBuilder,
     required IconData icon,
     required ColorScheme colorScheme,
     required bool isDark,
@@ -664,6 +714,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
               dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               icon: Icon(Icons.keyboard_arrow_down_rounded, color: colorScheme.onSurfaceVariant),
               items: items.map((String item) {
+                final display = itemLabelBuilder != null ? itemLabelBuilder(item) : item;
                 return DropdownMenuItem<String>(
                   value: item,
                   child: Row(
@@ -671,7 +722,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                       Icon(icon, size: 18, color: colorScheme.primary),
                       const SizedBox(width: 10),
                       Text(
-                        item,
+                        display,
                         style: TextStyle(
                           fontSize: 14,
                           color: colorScheme.onSurface,
@@ -728,7 +779,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     );
   }
 
-  Widget _buildResultSummaryCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent) {
+  Widget _buildResultSummaryCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent, LocaleNotifier loc) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
@@ -764,7 +815,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Calculation Summary',
+                    loc.translate('calc.summaryTitle'),
                     style: TextStyle(
                       color: colorScheme.onSurface,
                       fontSize: 17,
@@ -793,12 +844,12 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
           ),
           const SizedBox(height: 20),
 
-          _buildResultRow('Agreement Value', _formatIndianRupee(_enteredPropertyValue), colorScheme),
+          _buildResultRow(loc.translate('calc.rowAgreementValue'), _formatIndianRupee(_enteredPropertyValue), colorScheme),
           const SizedBox(height: 10),
-          _buildResultRow('Circle Rate / Market Value', _formatIndianRupee(_enteredCircleRate), colorScheme),
+          _buildResultRow(loc.translate('calc.rowCircleRate'), _formatIndianRupee(_enteredCircleRate), colorScheme),
           const SizedBox(height: 10),
           _buildResultRow(
-            'Applicable Market Value',
+            loc.translate('calc.rowApplicableMarketValue'),
             _formatIndianRupee(_applicableMarketValue),
             colorScheme,
             isBold: true,
@@ -806,13 +857,13 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
           const Divider(height: 24),
 
           _buildResultRow(
-            'Stamp Duty (${_stampDutyRate.toStringAsFixed(1)}%)',
+            loc.translate('calc.rowStampDuty', {'rate': _stampDutyRate.toStringAsFixed(1)}),
             _formatIndianRupee(_stampDutyAmount),
             colorScheme,
           ),
           const SizedBox(height: 10),
           _buildResultRow(
-            'Registration Charges (${_registrationRate.toStringAsFixed(1)}%)',
+            loc.translate('calc.rowRegistration', {'rate': _registrationRate.toStringAsFixed(1)}),
             _formatIndianRupee(_registrationAmount),
             colorScheme,
           ),
@@ -833,7 +884,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TOTAL PAYABLE',
+                      loc.translate('calc.totalPayable'),
                       style: TextStyle(
                         color: purpleAccent,
                         fontSize: 11,
@@ -843,7 +894,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Stamp Duty + Registration',
+                      loc.translate('calc.stampPlusReg'),
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
@@ -892,7 +943,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
     );
   }
 
-  Widget _buildDisclaimerBox(BuildContext context, ColorScheme colorScheme, bool isDark) {
+  Widget _buildDisclaimerBox(BuildContext context, ColorScheme colorScheme, bool isDark, LocaleNotifier loc) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -909,7 +960,7 @@ class _StampDutyCalculatorScreenState extends State<StampDutyCalculatorScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'These calculations are estimates based on the selected rates. Actual stamp duty and registration charges may vary depending on the state, property type, transaction details, applicable government rules, exemptions, and current rates. Please verify the applicable rates with the relevant government authority before making a transaction.',
+              loc.translate('calc.disclaimer'),
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 12,

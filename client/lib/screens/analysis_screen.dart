@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import '../providers/locale_provider.dart';
 import '../services/api_service.dart';
 import '../services/pdf_export_service.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/user_profile_button.dart';
 
-class AnalysisScreen extends StatefulWidget {
+class AnalysisScreen extends ConsumerStatefulWidget {
   final String originalText;
   final List<dynamic> analysis;
   final String? documentTitle;
@@ -25,10 +27,10 @@ class AnalysisScreen extends StatefulWidget {
   });
 
   @override
-  State<AnalysisScreen> createState() => _AnalysisScreenState();
+  ConsumerState<AnalysisScreen> createState() => _AnalysisScreenState();
 }
 
-class _AnalysisScreenState extends State<AnalysisScreen> {
+class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   bool _isExplaining = false;
   bool _isExportingPdf = false;
 
@@ -76,6 +78,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Future<void> _exportPdf() async {
+    final tr = ref.read(localeProvider.notifier).translate;
     setState(() => _isExportingPdf = true);
     try {
       final docTitle = widget.documentTitle ??
@@ -92,11 +95,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 10),
-              Text('Legal Risk Assessment Report exported successfully!'),
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(child: Text(tr('analysis.pdfSuccess'))),
             ],
           ),
           backgroundColor: const Color(0xFF16A34A),
@@ -108,7 +111,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to export PDF: $e'),
+          content: Text(tr('analysis.pdfFailed', {'error': '$e'})),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -138,6 +141,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   void _showExplanationModal(String snippet, String explanation) {
+    final tr = ref.read(localeProvider.notifier).translate;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -169,7 +173,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Plain English Translation',
+                    tr('analysis.plainEnglish'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -213,7 +217,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.check),
-                  label: const Text('Got it'),
+                  label: Text(tr('analysis.gotIt')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
@@ -231,6 +235,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final tr = ref.read(localeProvider.notifier).translate;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Calculate breakdown
@@ -250,9 +256,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Risk Analysis Report', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(tr('analysis.reportTitle'), style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: const [
-          ThemeToggleButton(),
+          UserProfileButton(),
+          SizedBox(width: 8),
         ],
       ),
       body: Stack(
@@ -297,8 +304,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                             const SizedBox(width: 8),
                             Text(
                               redCount > 0
-                                  ? 'High Legal Risk Detected'
-                                  : (yellowCount > 0 ? 'Moderate Caution Advised' : 'Standard / Low Risk'),
+                                  ? tr('analysis.highRiskDetected')
+                                  : (yellowCount > 0 ? tr('analysis.moderateCaution') : tr('analysis.standardLowRisk')),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -312,7 +319,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                         ElevatedButton.icon(
                           onPressed: _isExportingPdf ? null : _exportPdf,
                           icon: const Icon(Icons.download, size: 16),
-                          label: const Text('Export PDF'),
+                          label: Text(tr('analysis.exportPdf')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2563EB),
                             foregroundColor: Colors.white,
@@ -329,10 +336,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildStatPill('🔴 $redCount High Risk', const Color(0xFFFEF2F2), const Color(0xFFDC2626), isDark),
-                        _buildStatPill('🟡 $yellowCount Caution', const Color(0xFFFFFBEB), const Color(0xFFD97706), isDark),
-                        _buildStatPill('🟢 $greenCount Compliant', const Color(0xFFECFDF5), const Color(0xFF16A34A), isDark),
-                        _buildStatPill('${widget.analysis.length} Clauses Total', const Color(0xFFF1F5F9), const Color(0xFF64748B), isDark),
+                        _buildStatPill(tr('analysis.highRiskCount', {'count': '$redCount'}), const Color(0xFFFEF2F2), const Color(0xFFDC2626), isDark),
+                        _buildStatPill(tr('analysis.cautionCount', {'count': '$yellowCount'}), const Color(0xFFFFFBEB), const Color(0xFFD97706), isDark),
+                        _buildStatPill(tr('analysis.compliantCount', {'count': '$greenCount'}), const Color(0xFFECFDF5), const Color(0xFF16A34A), isDark),
+                        _buildStatPill(tr('analysis.clausesTotal', {'count': '${widget.analysis.length}'}), const Color(0xFFF1F5F9), const Color(0xFF64748B), isDark),
                       ],
                     ),
                   ],
@@ -387,7 +394,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        widget.documentTitle ?? 'Uploaded Source Document & Text',
+                                        widget.documentTitle ?? tr('analysis.sourceDocTitle'),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -417,7 +424,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Original uploaded contract file',
+                                  tr('analysis.originalUploaded'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -430,7 +437,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           ElevatedButton.icon(
                             onPressed: () => _showDocumentViewerModal(context),
                             icon: const Icon(Icons.open_in_full_rounded, size: 14),
-                            label: const Text('Expand Window'),
+                            label: Text(tr('analysis.expandWindow')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2563EB),
                               foregroundColor: Colors.white,
@@ -507,7 +514,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       // Show text box only for pure text input scans without an uploaded file/image
                       if (widget.fileData == null || widget.fileData!.isEmpty) ...[
                         Text(
-                          'Original Contract Text:',
+                          tr('analysis.originalContractText'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -552,7 +559,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     const Icon(Icons.rule_rounded, size: 18, color: Color(0xFF2563EB)),
                     const SizedBox(width: 8),
                     Text(
-                      'Analyzed Clauses & Explanations',
+                      tr('analysis.analyzedClauses'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -609,7 +616,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                       size: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Tap to explain',
+                                    tr('analysis.tapToExplain'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -642,7 +649,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Risk Rationale: $reason',
+                                    tr('analysis.riskRationale', {'reason': reason}),
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w500,
@@ -664,16 +671,16 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           if (_isExplaining)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Card(
                   child: Padding(
-                    padding: EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Simplifying legal jargon with AI...'),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(tr('analysis.simplifyingJargon')),
                       ],
                     ),
                   ),
@@ -698,7 +705,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: isDark ? textColor : textColor,
+          color: textColor,
         ),
       ),
     );
@@ -1052,6 +1059,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildExtractedTextTab(BuildContext context, bool isDark, ColorScheme colorScheme) {
+    final tr = ref.read(localeProvider.notifier).translate;
     final wordCount = widget.originalText.trim().isEmpty ? 0 : widget.originalText.trim().split(RegExp(r'\s+')).length;
 
     return Container(
@@ -1066,7 +1074,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Original Extracted Text ($wordCount words)',
+                  tr('analysis.extractedWords', {'count': '$wordCount'}),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1077,14 +1085,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Contract text copied to clipboard!'),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text(tr('analysis.copySuccess')),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },
                   icon: const Icon(Icons.copy_rounded, size: 14),
-                  label: const Text('Copy Text'),
+                  label: Text(tr('analysis.copyText')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
@@ -1129,4 +1137,5 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 }
+
 

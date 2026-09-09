@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -301,29 +301,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   ],
                 ),
 
-              // Right Action Buttons & Theme Toggle
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const ThemeToggleButton(),
-                  const SizedBox(width: 10),
-                  OutlinedButton(
-                    onPressed: _navigateToLogin,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 38),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      side: BorderSide(
-                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      foregroundColor: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                    ),
-                    child: Text(
-                      'Sign In',
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
+              // Right Action Button
+              OutlinedButton(
+                onPressed: _navigateToLogin,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  side: BorderSide(
+                    color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
                   ),
-                ],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  foregroundColor: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                ),
+                child: Text(
+                  'Sign In',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -747,54 +740,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   }
 
 
-
-  // ==========================================
-  // TRUST & VALUE STRIP
-  // ==========================================
-  Widget _buildTrustStrip(bool isDark) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: (isDark ? const Color(0xFF1E293B) : Colors.white).withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-          ),
-        ),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 14,
-          runSpacing: 6,
-          children: [
-            _buildTrustItem(Icons.lock_outline_rounded, 'Secure & Private', isDark),
-            _buildTrustItem(Icons.balance_rounded, 'RERA Focused', isDark),
-            _buildTrustItem(Icons.auto_awesome_rounded, 'AI-Powered Analysis', isDark),
-            _buildTrustItem(Icons.picture_as_pdf_outlined, 'PDF Reports', isDark),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTrustItem(IconData icon, String text, bool isDark) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: const Color(0xFF3B82F6)),
-        const SizedBox(width: 5),
-        Text(
-          text,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
-          ),
-        ),
-      ],
-    );
-  }
 
   // ==========================================
   // CORE FEATURES SECTION (6-CARD SUITE)

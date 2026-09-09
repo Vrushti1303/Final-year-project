@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../providers/locale_provider.dart';
+import 'home_screen.dart';
+
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String email;
@@ -93,18 +95,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
 
   void _resendOtp() async {
     if (!_canResend) return;
+    final tr = ref.read(localeProvider.notifier).translate;
     
     final success = await ref.read(authProvider.notifier).resendOtp(widget.email);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP sent successfully'), behavior: SnackBarBehavior.floating),
+        SnackBar(content: Text(tr('auth.otpSentSuccess')), behavior: SnackBarBehavior.floating),
       );
       _startTimer();
     } else if (mounted) {
       final error = ref.read(authProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error ?? 'Failed to resend OTP'),
+          content: Text(error ?? tr('auth.otpResendFailed')),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -113,11 +116,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
   }
 
   void _verifyOtp() async {
+    final tr = ref.read(localeProvider.notifier).translate;
     final otp = _pinController.text;
     if (otp.length != 6) {
        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter a valid 6-digit OTP'),
+          content: Text(tr('auth.enterValidOtp')),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -135,21 +139,32 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
     if (success && mounted) {
       // Show success briefly
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification successful!'),
+        SnackBar(
+          content: Text(tr('auth.verificationSuccess')),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
       );
       // Navigate to dashboard
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            ),
+            (route) => false,
+          );
+        }
       });
     } else if (mounted) {
       final error = ref.read(authProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error ?? 'Invalid OTP'),
+          content: Text(error ?? tr('auth.invalidOtp')),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -161,6 +176,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final tr = ref.read(localeProvider.notifier).translate;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final authState = ref.watch(authProvider);
@@ -204,9 +221,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        actions: const [
-          ThemeToggleButton(),
-        ],
+        actions: const [],
       ),
       body: Stack(
         children: [
@@ -301,13 +316,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                             ),
                             const SizedBox(height: 32),
                             Text(
-                              'Verify Your Email',
+                              tr('auth.verifyYourEmail'),
                               textAlign: TextAlign.center,
                               style: theme.textTheme.displayLarge?.copyWith(fontSize: 32),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Enter the 6-digit code sent to\n${widget.email}',
+                              tr('auth.enter6Digit', {'email': widget.email}),
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
                             ),
@@ -330,7 +345,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                             const SizedBox(height: 32),
                             
                             Text(
-                              _start > 0 ? 'Code expires in $_formattedTime' : 'Code has expired',
+                              _start > 0 ? tr('auth.codeExpiresIn', {'time': _formattedTime}) : tr('auth.codeExpired'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: _start > 0 ? colorScheme.onSurfaceVariant : theme.colorScheme.error,
@@ -351,7 +366,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                                         valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                                       ),
                                     )
-                                  : const Text('Verify'),
+                                  : Text(tr('auth.verify')),
                             ),
                           ],
                         ),
@@ -363,13 +378,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Didn't receive the code? ",
+                            tr('auth.didntReceiveCode'),
                             style: theme.textTheme.bodyMedium,
                           ),
                           GestureDetector(
                             onTap: _canResend ? _resendOtp : null,
                             child: Text(
-                              _canResend ? 'Resend' : 'Wait ${_resendCooldown}s',
+                              _canResend ? tr('auth.resend') : tr('auth.waitCooldown', {'seconds': '$_resendCooldown'}),
                               style: TextStyle(
                                 color: _canResend ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.38),
                                 fontWeight: FontWeight.w600,
@@ -392,3 +407,4 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with SingleTickerProvider
     );
   }
 }
+

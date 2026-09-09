@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/locale_provider.dart';
 import '../services/api_service.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/user_profile_button.dart';
 
-
-
-class ChecklistScreen extends StatefulWidget {
+class ChecklistScreen extends ConsumerStatefulWidget {
   final String type;
   const ChecklistScreen({super.key, required this.type});
 
   @override
-  State<ChecklistScreen> createState() => _ChecklistScreenState();
+  ConsumerState<ChecklistScreen> createState() => _ChecklistScreenState();
 }
 
-class _ChecklistScreenState extends State<ChecklistScreen> {
+class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   Map<String, dynamic>? _checklistData;
   bool _isLoading = true;
   String? _error;
@@ -68,6 +68,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   void _showAddItemDialog() {
+    final tr = ref.read(localeProvider.notifier).translate;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final TextEditingController controller = TextEditingController();
@@ -85,13 +86,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: colorScheme.outline),
               ),
-              title: Text('Add New Item', style: TextStyle(color: colorScheme.onSurface)),
+              title: Text(tr('checklists.addNewItem'), style: TextStyle(color: colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Enter the title of the new task',
+                    tr('checklists.enterTitle'),
                     style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
@@ -99,7 +100,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     controller: controller,
                     style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
-                      hintText: 'e.g. Verify Title Deed',
+                      hintText: tr('checklists.verifyTitleDeed'),
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       filled: true,
                       fillColor: theme.scaffoldBackgroundColor,
@@ -122,7 +123,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 if (!isAdding)
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                    child: Text(tr('common.cancel'), style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ),
                 if (!isAdding)
                   ElevatedButton(
@@ -153,7 +154,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         }
                       }
                     },
-                    child: Text('Add', style: TextStyle(color: colorScheme.onPrimary)),
+                    child: Text(tr('common.add'), style: TextStyle(color: colorScheme.onPrimary)),
                   ),
               ],
             );
@@ -165,6 +166,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final tr = ref.read(localeProvider.notifier).translate;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
@@ -178,11 +181,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          _checklistData?['title'] ?? 'Checklist',
+          _checklistData?['title'] ?? tr('checklists.title'),
           style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         actions: const [
-          ThemeToggleButton(),
+          UserProfileButton(),
+          SizedBox(width: 8),
         ],
       ),
       floatingActionButton: _checklistData != null && !_isLoading
@@ -190,7 +194,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               onPressed: _showAddItemDialog,
               backgroundColor: colorScheme.primary,
               icon: Icon(Icons.add, color: colorScheme.onPrimary),
-              label: Text('Add Item', style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+              label: Text(tr('checklists.addItem'), style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
             )
           : null,
       body: _isLoading
@@ -205,7 +209,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       ElevatedButton(
                         onPressed: _loadChecklist,
                         style: ElevatedButton.styleFrom(backgroundColor: colorScheme.surface),
-                        child: Text('Retry', style: TextStyle(color: colorScheme.onSurface)),
+                        child: Text(tr('common.retry'), style: TextStyle(color: colorScheme.onSurface)),
                       )
                     ],
                   ),
@@ -247,3 +251,4 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 }
+

@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/locale_provider.dart';
 
 void main() {
   runApp(const ProviderScope(child: LawBuddyApp()));
@@ -16,9 +17,11 @@ class LawBuddyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
+    final currentLocale = ref.watch(localeProvider);
 
     return MaterialApp(
       title: 'LawBuddy',
+      locale: Locale(currentLocale.code),
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: ThemeData(

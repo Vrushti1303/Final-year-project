@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/locale_provider.dart';
 import '../services/api_service.dart';
 import 'analysis_screen.dart';
 import 'scan_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/user_profile_button.dart';
 
-class RecentDocumentsScreen extends StatefulWidget {
+class RecentDocumentsScreen extends ConsumerStatefulWidget {
   final List<dynamic>? initialDocs;
 
   const RecentDocumentsScreen({super.key, this.initialDocs});
 
   @override
-  State<RecentDocumentsScreen> createState() => _RecentDocumentsScreenState();
+  ConsumerState<RecentDocumentsScreen> createState() => _RecentDocumentsScreenState();
 }
 
-class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
+class _RecentDocumentsScreenState extends ConsumerState<RecentDocumentsScreen> {
   List<dynamic> _allDocs = [];
   bool _isLoading = true;
   String _searchQuery = '';
@@ -88,17 +90,18 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
       }).length;
 
   String _formatRelativeTime(dynamic dateVal) {
-    if (dateVal == null) return 'Recently';
+    final tr = ref.read(localeProvider.notifier).translate;
+    if (dateVal == null) return tr('recentDocs.recently');
     try {
       final date = DateTime.parse(dateVal.toString());
       final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      if (diff.inMinutes < 1) return tr('recentDocs.justNow');
+      if (diff.inMinutes < 60) return tr('recentDocs.mAgo', {'count': '${diff.inMinutes}'});
+      if (diff.inHours < 24) return tr('recentDocs.hAgo', {'count': '${diff.inHours}'});
+      if (diff.inDays < 7) return tr('recentDocs.dAgo', {'count': '${diff.inDays}'});
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
-      return 'Recently';
+      return tr('recentDocs.recently');
     }
   }
 
@@ -130,15 +133,17 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final tr = ref.read(localeProvider.notifier).translate;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final displayDocs = _filteredDocs;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recent Documents', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(tr('recentDocs.title'), style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: const [
-          ThemeToggleButton(),
+          UserProfileButton(),
           SizedBox(width: 8),
         ],
       ),
@@ -155,7 +160,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
           );
         },
         icon: const Icon(Icons.document_scanner_rounded),
-        label: const Text('Scan New Document'),
+        label: Text(tr('recentDocs.scanNew')),
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
       ),
@@ -199,7 +204,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Document Legal Repository',
+                              tr('recentDocs.repository'),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -208,7 +213,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${_allDocs.length} total property agreements analyzed',
+                              tr('recentDocs.totalAnalyzed', {'count': '${_allDocs.length}'}),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -223,10 +228,10 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildSummaryStatPill('Total', '${_allDocs.length}', const Color(0xFF3B82F6), isDark),
-                      _buildSummaryStatPill('High Risk', '$_redCount', const Color(0xFFEF4444), isDark),
-                      _buildSummaryStatPill('Caution', '$_yellowCount', const Color(0xFFF59E0B), isDark),
-                      _buildSummaryStatPill('Compliant', '$_greenCount', const Color(0xFF10B981), isDark),
+                      _buildSummaryStatPill(tr('recentDocs.total'), '${_allDocs.length}', const Color(0xFF3B82F6), isDark),
+                      _buildSummaryStatPill(tr('recentDocs.highRisk'), '$_redCount', const Color(0xFFEF4444), isDark),
+                      _buildSummaryStatPill(tr('recentDocs.caution'), '$_yellowCount', const Color(0xFFF59E0B), isDark),
+                      _buildSummaryStatPill(tr('recentDocs.compliant'), '$_greenCount', const Color(0xFF10B981), isDark),
                     ],
                   ),
                 ],
@@ -238,7 +243,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
             TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
               decoration: InputDecoration(
-                hintText: 'Search documents by title or risk...',
+                hintText: tr('recentDocs.searchHint'),
                 prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -270,13 +275,13 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('All', _allDocs.length, isDark),
+                  _buildFilterChip('All', tr('recentDocs.all'), _allDocs.length, isDark),
                   const SizedBox(width: 8),
-                  _buildFilterChip('High Risk', _redCount, isDark, activeColor: const Color(0xFFEF4444)),
+                  _buildFilterChip('High Risk', tr('recentDocs.highRisk'), _redCount, isDark, activeColor: const Color(0xFFEF4444)),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Caution', _yellowCount, isDark, activeColor: const Color(0xFFF59E0B)),
+                  _buildFilterChip('Caution', tr('recentDocs.caution'), _yellowCount, isDark, activeColor: const Color(0xFFF59E0B)),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Compliant', _greenCount, isDark, activeColor: const Color(0xFF10B981)),
+                  _buildFilterChip('Compliant', tr('recentDocs.compliant'), _greenCount, isDark, activeColor: const Color(0xFF10B981)),
                 ],
               ),
             ),
@@ -309,8 +314,8 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _searchQuery.isNotEmpty
-                          ? 'No documents matching "$_searchQuery"'
-                          : 'No documents in this category',
+                          ? tr('recentDocs.noDocsMatching', {'query': _searchQuery})
+                          : tr('recentDocs.noDocsCategory'),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -319,7 +324,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Scan a new agreement or document to get an instant AI legal risk report.',
+                      tr('recentDocs.emptyPrompt'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -341,7 +346,7 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
                   final riskLevel = (doc['riskLevel'] ?? 'Low Risk').toString();
                   final docSize = (doc['docSize'] ?? '1.2 MB').toString();
                   final createdAt = doc['createdAt'];
-                  final dateText = 'Scanned ${_formatRelativeTime(createdAt)}';
+                  final dateText = tr('recentDocs.scanned', {'time': _formatRelativeTime(createdAt)});
                   final sourceType = (doc['sourceType'] as String?) ?? (title.toLowerCase().endsWith('.pdf') ? 'PDF Document' : 'Document');
 
                   Color badgeColor = const Color(0xFF10B981);
@@ -520,14 +525,14 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, int count, bool isDark, {Color activeColor = const Color(0xFF2563EB)}) {
-    final isSelected = _selectedCategory == label;
+  Widget _buildFilterChip(String categoryId, String label, int count, bool isDark, {Color activeColor = const Color(0xFF2563EB)}) {
+    final isSelected = _selectedCategory == categoryId;
     return ChoiceChip(
       label: Text('$label ($count)'),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          setState(() => _selectedCategory = label);
+          setState(() => _selectedCategory = categoryId);
         }
       },
       selectedColor: activeColor.withValues(alpha: 0.2),
@@ -547,3 +552,4 @@ class _RecentDocumentsScreenState extends State<RecentDocumentsScreen> {
     );
   }
 }
+

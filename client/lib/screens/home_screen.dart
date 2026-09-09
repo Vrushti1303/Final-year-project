@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../providers/locale_provider.dart';
+import '../widgets/user_profile_button.dart';
 import '../services/api_service.dart';
 import 'scan_screen.dart';
 import 'chat_screen.dart';
@@ -110,48 +111,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  void _handleLogout() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        return AlertDialog(
-          backgroundColor: colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: colorScheme.outline),
-          ),
-          title: Text(
-            'Sign Out',
-            style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600),
-          ),
-          content: Text(
-            'Are you sure you want to sign out of your LawBuddy session?',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(100, 42),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                ref.read(authProvider.notifier).logout();
-              },
-              child: const Text('Sign Out'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
 
 
   void _navigateTo(Widget screen) {
@@ -173,17 +132,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
+    final loc = ref.read(localeProvider.notifier);
     if (hour < 12) {
-      return 'Good Morning';
+      return loc.translate('home.goodMorning');
     } else if (hour < 17) {
-      return 'Good Afternoon';
+      return loc.translate('home.goodAfternoon');
     } else {
-      return 'Good Evening';
+      return loc.translate('home.goodEvening');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final colorScheme = Theme.of(context).colorScheme;
@@ -317,7 +278,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 500;
-              final isNarrow = constraints.maxWidth < 650;
               return Row(
                 children: [
                   // App Brand / Logo
@@ -388,19 +348,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                   const Spacer(),
 
                   // Right Nav Actions
-                  Row(
+                  const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const ThemeToggleButton(),
-                      const SizedBox(width: 8),
-
-                      // User Profile Avatar with Hover Effect
-                      _InteractiveProfileAvatar(
-                        userName: userName,
-                        onTap: _handleLogout,
-                        colorScheme: colorScheme,
-                        isDark: isDark,
-                      ),
+                      UserProfileButton(),
                     ],
                   ),
                 ],
@@ -416,6 +367,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   // 1. COMPACT WELCOME BANNER
   // ==========================================
   Widget _buildHeroSection(BuildContext context, ColorScheme colorScheme, bool isDark, String userName) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
@@ -441,7 +394,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             children: [
               Expanded(
                 child: Text(
-                  '${_getGreeting()}, $userName 👋',
+                  loc.translate('home.greeting', {'greeting': _getGreeting(), 'name': userName}),
                   style: TextStyle(
                     color: colorScheme.onSurface,
                     fontSize: constraints.maxWidth < 420 ? 20 : 24,
@@ -474,11 +427,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   // 2. QUICK ACTIONS SECTION
   // ==========================================
   Widget _buildQuickActionsSection(BuildContext context, ColorScheme colorScheme, bool isDark) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Actions',
+          loc.translate('home.quickActions'),
           style: TextStyle(
             color: colorScheme.onSurface,
             fontSize: 18,
@@ -488,7 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
         ),
         const SizedBox(height: 4),
         Text(
-          'Select a tool to manage your property legal workflow',
+          loc.translate('home.quickActionsSubtitle'),
           style: TextStyle(
             color: colorScheme.onSurfaceVariant,
             fontSize: 13,
@@ -511,34 +466,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             double checklistProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
 
             final String checklistBadge = checklistCount == 0
-                ? '0 Active Checklists'
-                : '$checklistCount Active ${checklistCount == 1 ? 'Checklist' : 'Checklists'}';
+                ? loc.translate('home.activeChecklistsZero')
+                : loc.translate('home.activeChecklistsBadge', {
+                    'count': checklistCount.toString(),
+                    'unit': loc.translate(checklistCount == 1 ? 'home.checklistUnitSingular' : 'home.checklistUnitPlural'),
+                  });
 
             final String checklistDesc = totalTasks == 0
-                ? (checklistCount == 0 ? '0 tasks • Tap to generate property guides' : '0 tasks completed • Tap to view guides')
-                : '$completedTasks of $totalTasks tasks completed across $checklistCount ${checklistCount == 1 ? 'guide' : 'guides'}';
+                ? (checklistCount == 0 ? loc.translate('home.checklistZeroTasks') : loc.translate('home.checklistZeroCompleted'))
+                : loc.translate('home.checklistTasksProgress', {
+                    'completed': completedTasks.toString(),
+                    'total': totalTasks.toString(),
+                    'count': checklistCount.toString(),
+                    'unit': loc.translate(checklistCount == 1 ? 'home.guideUnitSingular' : 'home.guideUnitPlural'),
+                  });
+
+            final String exploreBtn = loc.translate('common.explore');
 
             final cards = [
               _QuickActionItem(
-                title: 'Scan Agreement',
-                description: 'Analyze documents for legal risk',
-                ctaText: 'Explore →',
+                title: loc.translate('home.scanAgreement'),
+                description: loc.translate('home.scanAgreementDesc'),
+                ctaText: exploreBtn,
                 icon: Icons.document_scanner_rounded,
                 accentColor: const Color(0xFF91ADCD), // Chambray Blue Accent
                 onTap: () => _navigateTo(const ScanScreen()),
               ),
               _QuickActionItem(
-                title: 'Legal Chatbot',
-                description: 'Ask property & RERA questions',
-                ctaText: 'Explore →',
+                title: loc.translate('home.legalChatbot'),
+                description: loc.translate('home.legalChatbotDesc'),
+                ctaText: exploreBtn,
                 icon: Icons.forum_outlined,
                 accentColor: isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B), // Warm Taupe / Cocoa Accent
                 onTap: () => _navigateTo(const ChatScreen()),
               ),
               _QuickActionItem(
-                title: 'Property Checklist',
+                title: loc.translate('home.propertyChecklist'),
                 description: checklistDesc,
-                ctaText: 'Explore →',
+                ctaText: exploreBtn,
                 icon: Icons.checklist_rounded,
                 accentColor: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78), // Muted Steel Blue / Deep Navy Accent
                 badgeText: checklistBadge,
@@ -547,9 +512,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 onTap: () => _navigateTo(const ChecklistsListScreen()),
               ),
               _QuickActionItem(
-                title: 'Stamp Duty Calculator',
-                description: 'Calculate stamp duty & registration charges',
-                ctaText: 'Explore →',
+                title: loc.translate('home.stampDutyCalculator'),
+                description: loc.translate('home.stampDutyCalculatorDesc'),
+                ctaText: exploreBtn,
                 icon: Icons.calculate_rounded,
                 accentColor: isDark ? const Color(0xFFC5A85E) : const Color(0xFFFFDF8C), // Soft Golden Yellow Accent
                 onTap: () => _navigateTo(const StampDutyCalculatorScreen()),
@@ -674,7 +639,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                           Icon(Icons.shield_outlined, size: 12, color: colorScheme.tertiary),
                           const SizedBox(width: 4),
                           Text(
-                            'RERA ALERT',
+                            ref.watch(localeProvider.notifier).translate('home.reraAlert'),
                             style: TextStyle(
                               color: colorScheme.tertiary,
                               fontWeight: FontWeight.w700,
@@ -728,7 +693,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'View Details',
+                        ref.watch(localeProvider.notifier).translate('common.viewDetails'),
                         style: TextStyle(
                           color: colorScheme.tertiary,
                           fontWeight: FontWeight.w600,
@@ -775,7 +740,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                               Icon(Icons.shield_outlined, size: 12, color: colorScheme.tertiary),
                               const SizedBox(width: 4),
                               Text(
-                                'RERA ALERT',
+                                ref.watch(localeProvider.notifier).translate('home.reraAlert'),
                                 style: TextStyle(
                                   color: colorScheme.tertiary,
                                   fontWeight: FontWeight.w700,
@@ -832,7 +797,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'View Details',
+                        ref.watch(localeProvider.notifier).translate('common.viewDetails'),
                         style: TextStyle(
                           color: colorScheme.tertiary,
                           fontWeight: FontWeight.w600,
@@ -870,6 +835,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
       showDialog(
         context: context,
         builder: (context) {
+          final loc = ref.read(localeProvider.notifier);
           return AlertDialog(
             backgroundColor: colorScheme.surface,
             shape: RoundedRectangleBorder(
@@ -880,17 +846,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               children: [
                 Icon(Icons.info_outline_rounded, color: colorScheme.tertiary),
                 const SizedBox(width: 10),
-                const Text('RERA Advisory Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                Text(loc.translate('home.reraAdvisoryDetails'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ],
             ),
             content: Text(
-              '$alertTitle\n\n$alertDesc\n\nUnder Section 18 of the RERA Act, promoter default in handover or escrow accounting mandates strict statutory interest compensation at SBI MCLR + 2%.',
+              '$alertTitle\n\n$alertDesc\n\n${loc.translate('home.reraStatutoryNote')}',
               style: const TextStyle(height: 1.4, fontSize: 14),
             ),
             actions: [
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Understood'),
+                child: Text(loc.translate('common.understood')),
               ),
             ],
           );
@@ -902,6 +868,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   // ==========================================
   Widget _buildRecentDocumentsSection(BuildContext context, ColorScheme colorScheme, bool isDark) {
     final docs = _recentDocs;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     return Container(
       decoration: BoxDecoration(
@@ -925,7 +893,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Recent Documents',
+                        loc.translate('home.recentDocuments'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -948,7 +916,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
-                  'View All (${_recentDocs.length})',
+                  loc.translate('home.viewAll', {'count': _recentDocs.length.toString()}),
                   style: TextStyle(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -985,7 +953,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No agreements scanned yet',
+                      loc.translate('home.noAgreementsScanned'),
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontSize: 14,
@@ -994,7 +962,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Upload or scan your property agreement for AI risk assessment.',
+                      loc.translate('home.uploadOrScanAgreement'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
@@ -1006,7 +974,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ElevatedButton.icon(
                       onPressed: () => _navigateTo(const ScanScreen()),
                       icon: const Icon(Icons.document_scanner_rounded, size: 15),
-                      label: const Text('Scan or Upload Agreement'),
+                      label: Text(loc.translate('home.scanOrUploadAgreementBtn')),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1060,6 +1028,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   // ==========================================
   Widget _buildLegalNewsSection(BuildContext context, ColorScheme colorScheme, bool isDark) {
     final news = _legalNews;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     return Container(
       decoration: BoxDecoration(
@@ -1083,7 +1053,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Latest Legal Updates',
+                        loc.translate('home.latestLegalUpdates'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1117,7 +1087,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Live',
+                      loc.translate('common.live'),
                       style: TextStyle(
                         color: colorScheme.primary,
                         fontSize: 11,
@@ -1140,7 +1110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               padding: const EdgeInsets.all(24.0),
               child: Center(
                 child: Text(
-                  'No legal updates available at this moment',
+                  loc.translate('home.noLegalUpdates'),
                   style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
                 ),
               ),
@@ -1471,7 +1441,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
 
               // Description with consistent fixed height for perfect CTA baseline alignment
               SizedBox(
-                height: 32,
+                height: 38,
                 child: Text(
                   widget.item.description,
                   maxLines: 2,
@@ -1513,7 +1483,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Explore',
+                    widget.item.ctaText,
                     style: TextStyle(
                       color: _isHovered ? widget.item.accentColor : widget.item.accentColor.withValues(alpha: 0.9),
                       fontSize: 12,
@@ -1909,68 +1879,9 @@ class _HoverNewsRowState extends State<_HoverNewsRow> {
   }
 }
 
-class _InteractiveProfileAvatar extends StatefulWidget {
-  final String userName;
-  final VoidCallback onTap;
-  final ColorScheme colorScheme;
-  final bool isDark;
 
-  const _InteractiveProfileAvatar({
-    required this.userName,
-    required this.onTap,
-    required this.colorScheme,
-    required this.isDark,
-  });
 
-  @override
-  State<_InteractiveProfileAvatar> createState() => _InteractiveProfileAvatarState();
-}
-
-class _InteractiveProfileAvatarState extends State<_InteractiveProfileAvatar> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final String initial = widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U';
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Tooltip(
-          message: '${widget.userName} (Click to Sign Out)',
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _isHovered ? widget.colorScheme.primary : Colors.transparent,
-                width: 1.5,
-              ),
-            ),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: widget.colorScheme.primary.withValues(alpha: 0.15),
-              child: Text(
-                initial,
-                style: TextStyle(
-                  color: widget.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FloatingLegalAiButton extends StatefulWidget {
+class _FloatingLegalAiButton extends ConsumerStatefulWidget {
   final VoidCallback onTap;
   final ColorScheme colorScheme;
   final bool isDark;
@@ -1982,14 +1893,17 @@ class _FloatingLegalAiButton extends StatefulWidget {
   });
 
   @override
-  State<_FloatingLegalAiButton> createState() => _FloatingLegalAiButtonState();
+  ConsumerState<_FloatingLegalAiButton> createState() => _FloatingLegalAiButtonState();
 }
 
-class _FloatingLegalAiButtonState extends State<_FloatingLegalAiButton> {
+class _FloatingLegalAiButtonState extends ConsumerState<_FloatingLegalAiButton> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
@@ -2020,7 +1934,7 @@ class _FloatingLegalAiButtonState extends State<_FloatingLegalAiButton> {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 child: Text(
-                  _isHovered ? 'Need Legal Help? Ask LawBuddy' : 'Ask Legal AI',
+                  _isHovered ? loc.translate('home.needLegalHelp') : loc.translate('home.askLegalAi'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,

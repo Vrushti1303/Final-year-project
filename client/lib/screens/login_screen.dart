@@ -1,11 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import 'signup_screen.dart';
 import 'otp_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -115,6 +115,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
+    final tr = ref.read(localeProvider.notifier).translate;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -180,7 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
             child: Column(
               children: [
                 // Top Navigation Bar
-                _buildTopBar(context, primaryText, cardBorder, isDark),
+                _buildTopBar(context, primaryText, cardBorder, isDark, tr),
 
                 // Main Content Body
                 Expanded(
@@ -213,6 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                                           elevatedSurface,
                                           accentBlue,
                                           isDark,
+                                          tr,
                                         ),
                                       ),
                                       const SizedBox(width: 56),
@@ -231,13 +234,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                                           accentBlue,
                                           colorScheme,
                                           isDark,
+                                          tr,
                                         ),
                                       ),
                                     ],
                                   )
                                 : Column(
                                     children: [
-                                      _buildMobileBrandHeader(primaryText, secondaryText, accentBlue, isDark),
+                                      _buildMobileBrandHeader(primaryText, secondaryText, accentBlue, isDark, tr),
                                       const SizedBox(height: 24),
                                       _buildLoginCard(
                                         context,
@@ -250,6 +254,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                                         accentBlue,
                                         colorScheme,
                                         isDark,
+                                        tr,
                                       ),
                                     ],
                                   ),
@@ -270,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   // ==========================================
   // TOP APP BAR
   // ==========================================
-  Widget _buildTopBar(BuildContext context, Color primaryText, Color borderColor, bool isDark) {
+  Widget _buildTopBar(BuildContext context, Color primaryText, Color borderColor, bool isDark, String Function(String, [Map<String, String>?]) tr) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -304,7 +309,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                       Icon(Icons.arrow_back_rounded, size: 18, color: primaryText),
                       const SizedBox(width: 6),
                       Text(
-                        'Back to Home',
+                        tr('auth.backToHome'),
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -316,8 +321,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                 ),
               ),
 
-              // Theme Toggle Action
-              const ThemeToggleButton(),
+
             ],
           ),
         ),
@@ -336,6 +340,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     Color elevatedSurface,
     Color accentBlue,
     bool isDark,
+    String Function(String, [Map<String, String>?]) tr,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,7 +380,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'LawBuddy',
+                  tr('common.appName'),
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -384,7 +389,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                   ),
                 ),
                 Text(
-                  'AI Property Legal Assistant',
+                  tr('common.appSubtitle'),
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -401,7 +406,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
 
         // Headline
         Text(
-          'Intelligent Protection for Property Agreements.',
+          tr('auth.intelligentProtection'),
           style: GoogleFonts.inter(
             fontSize: 32,
             fontWeight: FontWeight.w800,
@@ -414,7 +419,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         const SizedBox(height: 12),
 
         Text(
-          'Sign in to access your saved document scans, RERA compliance checks, and real-time legal assistant.',
+          tr('auth.signInSubtitle'),
           style: GoogleFonts.inter(
             fontSize: 14,
             height: 1.5,
@@ -458,7 +463,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'RERA & Contract Safety',
+                        tr('auth.reraSafety'),
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -493,7 +498,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              'AI Analysis Ready',
+                              tr('auth.aiReady'),
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -522,7 +527,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Clause Risk Assessment • Escrow Compliance',
+                        tr('auth.clauseAssessment'),
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 11.5,
@@ -538,23 +543,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
           ),
         ),
 
-        const SizedBox(height: 24),
 
-        // Security Footnote
-        Row(
-          children: [
-            Icon(Icons.lock_outline_rounded, size: 14, color: secondaryText),
-            const SizedBox(width: 6),
-            Text(
-              'End-to-end encrypted • Strictly confidential',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: secondaryText,
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -562,7 +551,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   // ==========================================
   // MOBILE BRAND HEADER
   // ==========================================
-  Widget _buildMobileBrandHeader(Color primaryText, Color secondaryText, Color accentBlue, bool isDark) {
+  Widget _buildMobileBrandHeader(Color primaryText, Color secondaryText, Color accentBlue, bool isDark, String Function(String, [Map<String, String>?]) tr) {
     return Column(
       children: [
         Container(
@@ -591,7 +580,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         ),
         const SizedBox(height: 12),
         Text(
-          'LawBuddy',
+          tr('common.appName'),
           style: GoogleFonts.inter(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -601,7 +590,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         ),
         const SizedBox(height: 2),
         Text(
-          'AI Property Legal Assistant',
+          tr('common.appSubtitle'),
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -626,6 +615,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     Color accentBlue,
     ColorScheme colorScheme,
     bool isDark,
+    String Function(String, [Map<String, String>?]) tr,
   ) {
     final bool isLoading = authState.status == AuthStatus.loading;
 
@@ -652,7 +642,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         children: [
           // Header inside card
           Text(
-            'Welcome Back',
+            tr('auth.welcomeBack'),
             style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -662,7 +652,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
           ),
           const SizedBox(height: 6),
           Text(
-            'Enter your email or phone to receive a secure OTP code.',
+            tr('auth.enterEmailPhone'),
             style: GoogleFonts.inter(
               fontSize: 13,
               height: 1.4,
@@ -720,7 +710,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Email',
+                            tr('auth.email'),
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: _isEmailMode ? FontWeight.w700 : FontWeight.w500,
@@ -769,7 +759,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Mobile',
+                            tr('auth.mobile'),
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: !_isEmailMode ? FontWeight.w700 : FontWeight.w500,
@@ -794,7 +784,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  _isEmailMode ? 'Email Address' : 'Mobile Number',
+                  _isEmailMode ? tr('auth.emailAddress') : tr('auth.mobileNumber'),
                   style: GoogleFonts.inter(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -831,7 +821,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: elevatedSurface,
-                      hintText: _isEmailMode ? 'name@example.com' : 'e.g. 9876543210',
+                      hintText: _isEmailMode ? tr('auth.emailHint') : tr('auth.phoneHint'),
                       hintStyle: GoogleFonts.inter(
                         fontSize: 13.5,
                         color: secondaryText.withValues(alpha: 0.7),
@@ -861,18 +851,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your ${_isEmailMode ? 'email' : 'mobile number'}';
+                        return tr('auth.enterIdentifier', {'type': _isEmailMode ? tr('auth.email') : tr('auth.mobileNumber')});
                       }
                       if (_isEmailMode) {
                         final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                         if (!emailRegex.hasMatch(value.trim())) {
-                          return 'Enter a valid email address';
+                          return tr('auth.validEmail');
                         }
                       } else {
                         final cleanPhone = value.replaceAll(RegExp(r'[\s\-\(\)]'), '');
                         final phoneRegex = RegExp(r'^\+?[0-9]{10,15}$');
                         if (!phoneRegex.hasMatch(cleanPhone)) {
-                          return 'Enter a valid phone number';
+                          return tr('auth.validPhone');
                         }
                       }
                       return null;
@@ -914,7 +904,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Send Secure OTP',
+                                  tr('auth.sendOtp'),
                                   style: GoogleFonts.inter(
                                     fontSize: 14.5,
                                     fontWeight: FontWeight.w700,
@@ -944,7 +934,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Don't have an account? ",
+                tr('auth.noAccount'),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: secondaryText,
@@ -966,7 +956,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Text(
-                    'Sign Up',
+                    tr('auth.signUp'),
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -982,3 +972,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     );
   }
 }
+

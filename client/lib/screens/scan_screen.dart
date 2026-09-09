@@ -2,22 +2,24 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../services/api_service.dart';
+import '../providers/locale_provider.dart';
 import 'analysis_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/user_profile_button.dart';
 
-class ScanScreen extends StatefulWidget {
+class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key});
 
   @override
-  State<ScanScreen> createState() => _ScanScreenState();
+  ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends State<ScanScreen> {
+class _ScanScreenState extends ConsumerState<ScanScreen> {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
   
@@ -27,6 +29,7 @@ class _ScanScreenState extends State<ScanScreen> {
   bool get _isMobile => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
 
   Future<void> _scanImage(ImageSource source) async {
+    final loc = ref.read(localeProvider.notifier);
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
@@ -38,7 +41,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
       setState(() {
         _isProcessing = true;
-        _statusMessage = 'Analyzing image document...';
+        _statusMessage = loc.translate('scan.processingPhoto');
       });
 
       String extractedText = '';
@@ -101,6 +104,7 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _scanPdf() async {
+    final loc = ref.read(localeProvider.notifier);
     try {
       FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
@@ -111,7 +115,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (result != null) {
         setState(() {
           _isProcessing = true;
-          _statusMessage = 'Reading document...';
+          _statusMessage = loc.translate('scan.processingPdf');
         });
 
         final PlatformFile file = result.files.single;
@@ -153,7 +157,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
           // Scanned PDF fallback via Multimodal Vision AI
           setState(() {
-            _statusMessage = 'Analyzing scanned PDF via AI vision...';
+            _statusMessage = loc.translate('scan.processingPdfVision');
           });
           final analysisResult = await ApiService.scanDocumentFile(uint8bytes, 'application/pdf', title: fileName, sourceType: 'PDF Document');
 
@@ -204,9 +208,10 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _analyzeText(String text, {String? title, String? sourceType, String? base64Data, String? mimeType}) async {
+    final loc = ref.read(localeProvider.notifier);
     setState(() {
       _isProcessing = true;
-      _statusMessage = 'Analyzing for risks...';
+      _statusMessage = loc.translate('scan.processingRisk');
     });
 
     try {
@@ -259,6 +264,8 @@ class _ScanScreenState extends State<ScanScreen> {
     final textPrimary = colorScheme.onSurface;
     final textSecondary = colorScheme.onSurfaceVariant;
     final borderColor = colorScheme.outline;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -270,7 +277,8 @@ class _ScanScreenState extends State<ScanScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: const [
-          ThemeToggleButton(),
+          UserProfileButton(),
+          SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -289,7 +297,7 @@ class _ScanScreenState extends State<ScanScreen> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: _isProcessing
-                    ? _buildProcessingState(textPrimary, textSecondary, primaryAccent)
+                    ? _buildProcessingState(textPrimary, textSecondary, primaryAccent, loc)
                     : SingleChildScrollView(
                         key: const ValueKey('main_form'),
                         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
@@ -297,7 +305,7 @@ class _ScanScreenState extends State<ScanScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              'Scan or Input Document',
+                              loc.translate('scan.title'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 36,
@@ -307,7 +315,7 @@ class _ScanScreenState extends State<ScanScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Upload a legal document for AI-powered verification and analysis.',
+                              loc.translate('scan.subtitle'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 16,
@@ -354,7 +362,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                 children: [
                                   _HoverableButton(
                                     icon: Icons.camera_alt,
-                                    label: 'Take a Photo',
+                                    label: loc.translate('scan.takePhoto'),
                                     onPressed: () => _scanImage(ImageSource.camera),
                                     isPrimary: true,
                                     primaryAccent: primaryAccent,
@@ -363,7 +371,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                   const SizedBox(height: 16),
                                   _HoverableButton(
                                     icon: Icons.image,
-                                    label: 'Upload from Gallery',
+                                    label: loc.translate('scan.uploadFromGallery'),
                                     onPressed: () => _scanImage(ImageSource.gallery),
                                     isPrimary: false,
                                     primaryAccent: primaryAccent,
@@ -372,7 +380,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                   const SizedBox(height: 16),
                                   _HoverableButton(
                                     icon: Icons.picture_as_pdf,
-                                    label: 'Upload PDF',
+                                    label: loc.translate('scan.uploadPdf'),
                                     onPressed: _scanPdf,
                                     isPrimary: false,
                                     primaryAccent: primaryAccent,
@@ -389,7 +397,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                  child: Text('OR', style: TextStyle(color: textSecondary, fontSize: 14)),
+                                  child: Text(loc.translate('common.or'), style: TextStyle(color: textSecondary, fontSize: 14)),
                                 ),
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
                               ],
@@ -415,7 +423,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Document Content',
+                                    loc.translate('scan.documentContent'),
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w500,
@@ -424,7 +432,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Paste or type the legal document here.',
+                                    loc.translate('scan.pastePrompt'),
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: textSecondary,
@@ -433,6 +441,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                   const SizedBox(height: 16),
                                   _FocusableTextField(
                                     controller: _textController,
+                                    hintText: loc.translate('scan.pasteHint'),
                                     bgColor: bgColor,
                                     borderColor: borderColor,
                                     primaryAccent: primaryAccent,
@@ -442,13 +451,13 @@ class _ScanScreenState extends State<ScanScreen> {
                                   const SizedBox(height: 24),
                                   _HoverableButton(
                                     icon: Icons.analytics_outlined,
-                                    label: 'Analyze Document Text',
+                                    label: loc.translate('scan.analyzeBtn'),
                                     onPressed: () {
                                       if (_textController.text.trim().isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Please enter or paste document text.', style: TextStyle(color: Colors.white)),
-                                            backgroundColor: Color(0xFFD76C6C),
+                                          SnackBar(
+                                            content: Text(loc.translate('scan.emptyError'), style: const TextStyle(color: Colors.white)),
+                                            backgroundColor: const Color(0xFFD76C6C),
                                           ),
                                         );
                                         return;
@@ -473,7 +482,7 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _buildProcessingState(Color textPrimary, Color textSecondary, Color primaryAccent) {
+  Widget _buildProcessingState(Color textPrimary, Color textSecondary, Color primaryAccent, LocaleNotifier loc) {
     return Center(
       key: const ValueKey('processing_state'),
       child: Column(
@@ -487,7 +496,7 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Please wait while we process your request.',
+            loc.translate('scan.pleaseWait'),
             style: TextStyle(fontSize: 14, color: textSecondary),
           ),
         ],
@@ -564,6 +573,7 @@ class _HoverableButtonState extends State<_HoverableButton> {
 
 class _FocusableTextField extends StatefulWidget {
   final TextEditingController controller;
+  final String? hintText;
   final Color bgColor;
   final Color borderColor;
   final Color primaryAccent;
@@ -572,6 +582,7 @@ class _FocusableTextField extends StatefulWidget {
 
   const _FocusableTextField({
     required this.controller,
+    this.hintText,
     required this.bgColor,
     required this.borderColor,
     required this.primaryAccent,
@@ -626,7 +637,7 @@ class _FocusableTextFieldState extends State<_FocusableTextField> {
         maxLines: null,
         style: TextStyle(color: widget.textPrimary, fontSize: 16),
         decoration: InputDecoration(
-          hintText: 'Paste your legal document here...',
+          hintText: widget.hintText ?? 'Paste your legal document here...',
           hintStyle: TextStyle(color: widget.textSecondary),
           filled: true,
           fillColor: widget.bgColor,

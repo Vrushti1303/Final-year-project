@@ -3,18 +3,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../providers/locale_provider.dart';
+import '../widgets/user_profile_button.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   final String? initialPrompt;
   const ChatScreen({super.key, this.initialPrompt});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
+class _ChatScreenState extends ConsumerState<ChatScreen> with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -99,6 +101,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _deleteSession(String sessionId) async {
+    final loc = ref.read(localeProvider.notifier);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -107,21 +110,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E334D) : colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, color: Color(0xFFC94A4A), size: 22),
-              SizedBox(width: 8),
-              Text('Delete Conversation?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Icon(Icons.delete_outline_rounded, color: Color(0xFFC94A4A), size: 22),
+              const SizedBox(width: 8),
+              Text(loc.translate('chat.deleteTitle'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: const Text(
-            'This conversation will be permanently removed from your saved chat history.',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          content: Text(
+            loc.translate('chat.deleteContent'),
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+              child: Text(loc.translate('common.cancel'), style: TextStyle(color: colorScheme.onSurfaceVariant)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -130,7 +133,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete'),
+              child: Text(loc.translate('common.delete')),
             ),
           ],
         );
@@ -148,15 +151,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 16),
-              SizedBox(width: 8),
-              Text('Conversation deleted'),
+              const Icon(Icons.check_circle, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              Text(loc.translate('chat.deletedToast')),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -240,17 +243,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     } on RateLimitException {
       final errNow = DateTime.now();
       final errTimeStr = '${errNow.hour > 12 ? errNow.hour - 12 : (errNow.hour == 0 ? 12 : errNow.hour)}:${errNow.minute.toString().padLeft(2, '0')} ${errNow.hour >= 12 ? 'PM' : 'AM'}';
+      final loc = ref.read(localeProvider.notifier);
       setState(() {
         _messages.add({
           'role': 'error', 
-          'text': '⚠️ Our servers are currently busy due to high demand. Please wait 15 seconds before trying again.',
+          'text': loc.translate('chat.rateLimitMessage'),
           'time': errTimeStr,
         });
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Rate limit reached. Please wait a moment.'),
+            content: Text(loc.translate('chat.rateLimitToast')),
             backgroundColor: Colors.orange.shade800,
             duration: const Duration(seconds: 4),
           ),
@@ -294,13 +298,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final textPrimary = colorScheme.onSurface;
     final textSecondary = colorScheme.onSurfaceVariant;
     final primaryAccent = colorScheme.primary;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     final isMobile = MediaQuery.of(context).size.width < 650;
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: bgColor,
-      endDrawer: _buildHistoryDrawer(context, isDark, textPrimary, textSecondary, primaryAccent),
+      endDrawer: _buildHistoryDrawer(context, isDark, textPrimary, textSecondary, primaryAccent, loc),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF162B43).withValues(alpha: 0.85) : bgColor.withValues(alpha: 0.85),
         elevation: 0,
@@ -334,7 +340,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Legal AI Assistant',
+                  loc.translate('chat.title'),
                   style: TextStyle(
                     color: textPrimary,
                     fontSize: 16,
@@ -343,7 +349,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 Text(
-                  'Indian Property, RERA & Contract Specialist',
+                  loc.translate('chat.subtitle'),
                   style: TextStyle(color: textSecondary, fontSize: 11),
                 ),
               ],
@@ -354,7 +360,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         actions: [
           IconButton(
             icon: Icon(Icons.history_rounded, color: textPrimary),
-            tooltip: 'Chat History',
+            tooltip: loc.translate('chat.chatHistory'),
             onPressed: () {
               _loadSessions();
               _scaffoldKey.currentState?.openEndDrawer();
@@ -363,10 +369,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           if (_messages.isNotEmpty)
             IconButton(
               icon: Icon(Icons.add_comment_outlined, color: textSecondary),
-              tooltip: 'New Chat',
+              tooltip: loc.translate('chat.newChat'),
               onPressed: _clearChat,
             ),
-          const ThemeToggleButton(),
+          const UserProfileButton(),
           const SizedBox(width: 8),
         ],
       ),
@@ -426,7 +432,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHistoryDrawer(BuildContext context, bool isDark, Color textPrimary, Color textSecondary, Color primaryAccent) {
+  Widget _buildHistoryDrawer(BuildContext context, bool isDark, Color textPrimary, Color textSecondary, Color primaryAccent, LocaleNotifier loc) {
     final filteredSessions = _searchQuery.trim().isEmpty
         ? _sessions
         : _sessions.where((s) {
@@ -467,7 +473,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Saved Consultations',
+                          loc.translate('chat.savedConsultations'),
                           style: TextStyle(
                             color: textPrimary,
                             fontSize: 15,
@@ -475,7 +481,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           ),
                         ),
                         Text(
-                          '${_sessions.length} sessions stored in Atlas',
+                          loc.translate('chat.sessionsStored', {'count': _sessions.length.toString()}),
                           style: TextStyle(
                             color: textSecondary,
                             fontSize: 11,
@@ -514,7 +520,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         controller: _searchController,
                         style: TextStyle(color: textPrimary, fontSize: 12),
                         decoration: InputDecoration(
-                          hintText: 'Search consultations...',
+                          hintText: loc.translate('chat.searchConsultations'),
                           hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.6), fontSize: 12),
                           border: InputBorder.none,
                           isDense: true,
@@ -559,7 +565,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       Icon(Icons.add_rounded, color: primaryAccent, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        'Start New Consultation',
+                        loc.translate('chat.startNewConsultation'),
                         style: TextStyle(
                           color: primaryAccent,
                           fontWeight: FontWeight.w600,
@@ -586,7 +592,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                 Icon(Icons.chat_bubble_outline_rounded, size: 36, color: textSecondary.withValues(alpha: 0.4)),
                                 const SizedBox(height: 10),
                                 Text(
-                                  _searchQuery.isNotEmpty ? 'No matching conversations' : 'No saved conversations yet',
+                                  _searchQuery.isNotEmpty ? loc.translate('chat.noMatchingConversations') : loc.translate('chat.noSavedConversations'),
                                   style: TextStyle(color: textSecondary, fontSize: 13),
                                 ),
                               ],
@@ -671,7 +677,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: Text(
-                                                  '$count turns',
+                                                  loc.translate('chat.turnsCount', {'count': count.toString()}),
                                                   style: TextStyle(
                                                     color: textSecondary,
                                                     fontSize: 10,
@@ -711,38 +717,40 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final textSecondary = colorScheme.onSurfaceVariant;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMobile = MediaQuery.of(context).size.width < 750;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     final promptCards = [
       {
-        'category': 'PROPERTY AGREEMENTS',
+        'category': loc.translate('chat.card1Cat'),
         'icon': Icons.description_outlined,
         'color': const Color(0xFF3B82F6),
-        'title': 'Review Agreement Clauses',
-        'desc': 'Scan lease or sale deed terms for hidden liabilities, lock-ins, and risky clauses.',
+        'title': loc.translate('chat.card1Title'),
+        'desc': loc.translate('chat.card1Desc'),
         'prompt': 'Can you review the key clauses in a residential property agreement and highlight standard red flags?',
       },
       {
-        'category': 'RERA COMPLIANCE',
+        'category': loc.translate('chat.card2Cat'),
         'icon': Icons.shield_outlined,
         'color': const Color(0xFFF59E0B),
-        'title': 'RERA Rights & Delays',
-        'desc': 'Understand builder handover delays, Section 18 interest compensation, and escrow norms.',
+        'title': loc.translate('chat.card2Title'),
+        'desc': loc.translate('chat.card2Desc'),
         'prompt': 'What are my legal rights and compensation rules under RERA if a builder delays possession?',
       },
       {
-        'category': 'LEGAL DRAFTING',
+        'category': loc.translate('chat.card3Cat'),
         'icon': Icons.edit_note_rounded,
         'color': const Color(0xFF10B981),
-        'title': 'Draft Tenancy & NOC',
-        'desc': 'Generate standard residential lease, sale agreement, or NOC templates with statutory clauses.',
+        'title': loc.translate('chat.card3Title'),
+        'desc': loc.translate('chat.card3Desc'),
         'prompt': 'Please draft a standard 11-month residential rental agreement with essential tenant and landlord clauses.',
       },
       {
-        'category': 'STAMP DUTY & TITLE',
+        'category': loc.translate('chat.card4Cat'),
         'icon': Icons.account_balance_outlined,
         'color': const Color(0xFF8B5CF6),
-        'title': 'Stamp Duty & Registry',
-        'desc': 'Mandatory document checklist, encumbrance certificate, and state registration guidelines.',
+        'title': loc.translate('chat.card4Title'),
+        'desc': loc.translate('chat.card4Desc'),
         'prompt': 'What documents and procedures are mandatory for property registration and stamp duty payment in India?',
       },
     ];
@@ -829,7 +837,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
               // Prominent Headline
               Text(
-                'Indian Property & RERA Legal AI',
+                loc.translate('chat.heroHeadline'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: textPrimary,
@@ -842,7 +850,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
               // Subtitle
               Text(
-                'Instant legal analysis, agreement scrutiny, and RERA rights guidance for homebuyers, landlords & tenants.',
+                loc.translate('chat.heroSubtitle'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: textSecondary,
@@ -859,9 +867,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildLegalTag(Icons.shield_outlined, 'RERA Compliant', const Color(0xFF3B82F6), isDark),
-                  _buildLegalTag(Icons.description_outlined, 'Model Tenancy Act', const Color(0xFF10B981), isDark),
-                  _buildLegalTag(Icons.balance_rounded, 'Transfer of Property Act', const Color(0xFFF59E0B), isDark),
+                  _buildLegalTag(Icons.shield_outlined, loc.translate('chat.tagRera'), const Color(0xFF3B82F6), isDark),
+                  _buildLegalTag(Icons.description_outlined, loc.translate('chat.tagTenancy'), const Color(0xFF10B981), isDark),
+                  _buildLegalTag(Icons.balance_rounded, loc.translate('chat.tagTransfer'), const Color(0xFFF59E0B), isDark),
                 ],
               ),
 
@@ -963,10 +971,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  'Delay penalty interest rate',
-                  'Carpet vs super built-up area',
-                  'Security deposit refund rules',
-                  '70% builder escrow rule',
+                  loc.translate('chat.chip1'),
+                  loc.translate('chat.chip2'),
+                  loc.translate('chat.chip3'),
+                  loc.translate('chat.chip4'),
                 ].map((s) => _HoverableChip(
                   label: s,
                   onTap: () => _sendMessage(textOverride: 'Explain: $s under Indian property law'),
@@ -992,7 +1000,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        'Educational assistance for Indian Property Law. Consult a registered advocate for court representation.',
+                        loc.translate('chat.disclaimer'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: textSecondary, fontSize: 11),
                       ),
@@ -1591,7 +1599,7 @@ class _AnimatedMessageBubbleState extends State<_AnimatedMessageBubble> {
   }
 }
 
-class _ChatInput extends StatefulWidget {
+class _ChatInput extends ConsumerStatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isLoading;
@@ -1607,10 +1615,10 @@ class _ChatInput extends StatefulWidget {
   });
 
   @override
-  State<_ChatInput> createState() => _ChatInputState();
+  ConsumerState<_ChatInput> createState() => _ChatInputState();
 }
 
-class _ChatInputState extends State<_ChatInput> {
+class _ChatInputState extends ConsumerState<_ChatInput> {
   bool _isFocused = false;
   bool _isSendHovered = false;
 
@@ -1687,7 +1695,7 @@ class _ChatInputState extends State<_ChatInput> {
               minLines: 1,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'Ask about property laws, RERA Section 18, delay remedies, or lease drafts...',
+                hintText: ref.watch(localeProvider.notifier).translate('chat.inputHint'),
                 hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.7), fontSize: 13.5),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -1746,7 +1754,7 @@ class _ChatInputState extends State<_ChatInput> {
   }
 }
 
-class _PromptCard extends StatefulWidget {
+class _PromptCard extends ConsumerStatefulWidget {
   final int index;
   final String category;
   final IconData icon;
@@ -1768,15 +1776,17 @@ class _PromptCard extends StatefulWidget {
   });
 
   @override
-  State<_PromptCard> createState() => _PromptCardState();
+  ConsumerState<_PromptCard> createState() => _PromptCardState();
 }
 
-class _PromptCardState extends State<_PromptCard> {
+class _PromptCardState extends ConsumerState<_PromptCard> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
     final cardBg = widget.isDark
         ? (_isHovered ? const Color(0xFF243E5E) : const Color(0xFF1E334D))
         : (_isHovered ? const Color(0xFFFFFFFF) : const Color(0xFFF7F1D0));
@@ -1872,7 +1882,7 @@ class _PromptCardState extends State<_PromptCard> {
               Row(
                 children: [
                   Text(
-                    'Ask Legal AI',
+                    loc.translate('chat.askLegalAi'),
                     style: TextStyle(
                       color: widget.accentColor,
                       fontSize: 11.5,
@@ -1955,14 +1965,14 @@ class _HoverableChipState extends State<_HoverableChip> {
   }
 }
 
-class _TypingIndicator extends StatefulWidget {
+class _TypingIndicator extends ConsumerStatefulWidget {
   const _TypingIndicator();
 
   @override
-  State<_TypingIndicator> createState() => _TypingIndicatorState();
+  ConsumerState<_TypingIndicator> createState() => _TypingIndicatorState();
 }
 
-class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerProviderStateMixin {
+class _TypingIndicatorState extends ConsumerState<_TypingIndicator> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -1983,6 +1993,8 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
     final textSecondary = colorScheme.onSurfaceVariant;
     final primaryAccent = colorScheme.primary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
 
     final cardBg = isDark ? const Color(0xFF1E334D) : const Color(0xFFF7F1D0);
     final borderColor = isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0);
@@ -2024,7 +2036,7 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Legal AI is analyzing your query',
+                      loc.translate('chat.typingTitle'),
                       style: TextStyle(color: colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 6),
@@ -2053,7 +2065,7 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
                   ],
                 ),
                 Text(
-                  'Referencing Indian Property Laws & RERA database...',
+                  loc.translate('chat.typingSubtitle'),
                   style: TextStyle(color: textSecondary, fontSize: 10.5),
                 ),
               ],

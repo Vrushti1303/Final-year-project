@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
+import '../providers/locale_provider.dart';
 import 'checklist_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/user_profile_button.dart';
 
-
-
-class ChecklistsListScreen extends StatefulWidget {
+class ChecklistsListScreen extends ConsumerStatefulWidget {
   const ChecklistsListScreen({super.key});
 
   @override
-  State<ChecklistsListScreen> createState() => _ChecklistsListScreenState();
+  ConsumerState<ChecklistsListScreen> createState() => _ChecklistsListScreenState();
 }
 
-class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
+class _ChecklistsListScreenState extends ConsumerState<ChecklistsListScreen> {
   List<dynamic> _checklists = [];
   bool _isLoading = true;
   String? _error;
@@ -57,6 +57,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
   void _showChecklistDialog(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final loc = ref.read(localeProvider.notifier);
     final TextEditingController controller = TextEditingController();
     bool isGenerating = false;
 
@@ -72,13 +73,13 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: colorScheme.outline),
               ),
-              title: Text('New Checklist', style: TextStyle(color: colorScheme.onSurface)),
+              title: Text(loc.translate('checklists.newChecklist'), style: TextStyle(color: colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'What kind of transaction are you doing?',
+                    loc.translate('checklists.question'),
                     style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
@@ -86,7 +87,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                     controller: controller,
                     style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
-                      hintText: 'e.g. Selling a flat in Mumbai',
+                      hintText: loc.translate('checklists.hint'),
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                       filled: true,
                       fillColor: theme.scaffoldBackgroundColor,
@@ -109,7 +110,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                 if (!isGenerating)
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Cancel', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                    child: Text(loc.translate('common.cancel'), style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ),
                 if (!isGenerating)
                   ElevatedButton(
@@ -140,7 +141,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                         }
                       }
                     },
-                    child: Text('Generate', style: TextStyle(color: colorScheme.onPrimary)),
+                    child: Text(loc.translate('checklists.generateBtn'), style: TextStyle(color: colorScheme.onPrimary)),
                   ),
               ],
             );
@@ -152,8 +153,10 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final loc = ref.read(localeProvider.notifier);
     
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -165,10 +168,11 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: const [
-          ThemeToggleButton(),
+          UserProfileButton(),
+          SizedBox(width: 8),
         ],
         title: Text(
-          'My Checklists',
+          loc.translate('checklists.title'),
           style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -176,7 +180,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
         onPressed: () => _showChecklistDialog(context),
         backgroundColor: colorScheme.primary,
         icon: Icon(Icons.add, color: colorScheme.onPrimary),
-        label: Text('New', style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+        label: Text(loc.translate('checklists.newBtn'), style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
@@ -190,7 +194,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                       ElevatedButton(
                         onPressed: _loadChecklists,
                         style: ElevatedButton.styleFrom(backgroundColor: colorScheme.surface),
-                        child: Text('Retry', style: TextStyle(color: colorScheme.onSurface)),
+                        child: Text(loc.translate('common.retry'), style: TextStyle(color: colorScheme.onSurface)),
                       )
                     ],
                   ),
@@ -198,7 +202,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
               : _checklists.isEmpty
                   ? Center(
                       child: Text(
-                        'No checklists found.\nTap "New" to generate one.',
+                        loc.translate('checklists.empty'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 16),
                       ),
@@ -243,7 +247,7 @@ class _ChecklistsListScreenState extends State<ChecklistsListScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          checklist['title'] ?? 'Untitled Checklist',
+                                          checklist['title'] ?? loc.translate('checklists.untitled'),
                                           style: TextStyle(
                                             color: colorScheme.onSurface,
                                             fontSize: 16,
