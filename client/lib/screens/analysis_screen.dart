@@ -233,17 +233,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Calculate breakdown
+    // Calculate breakdown strictly from the analysis array
     int redCount = 0;
     int yellowCount = 0;
     int greenCount = 0;
     for (final item in widget.analysis) {
+      final risk = (item['riskLevel'] ?? '').toString().toUpperCase();
       final cat = (item['category'] ?? '').toString().toLowerCase();
-      if (cat.contains('red')) {
+      if (risk == 'HIGH_RISK' || cat.contains('red')) {
         redCount++;
-      } else if (cat.contains('yellow')) {
+      } else if (risk == 'CAUTION' || cat.contains('yellow')) {
         yellowCount++;
-      } else if (cat.contains('green')) {
+      } else if (risk == 'COMPLIANT' || cat.contains('green')) {
         greenCount++;
       }
     }
@@ -566,9 +567,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               // Clauses List
               ...List.generate(widget.analysis.length, (index) {
                 final item = widget.analysis[index];
-                final category = (item['category'] ?? 'Standard').toString();
+                final clauseId = (item['clauseId'] ?? '').toString();
+                final category = (item['category'] ?? (item['riskLevel'] == 'HIGH_RISK' ? 'Red' : (item['riskLevel'] == 'CAUTION' ? 'Yellow' : 'Green'))).toString();
                 final text = (item['text'] ?? '').toString();
                 final reason = (item['reason'] ?? '').toString();
+                final reraRefs = (item['reraReferences'] is List) ? (item['reraReferences'] as List).join(', ') : '';
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 14),
@@ -588,20 +591,42 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _getBorderColor(context, category).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  category.toUpperCase(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: _getBorderColor(context, category),
+                              Row(
+                                children: [
+                                  if (clauseId.isNotEmpty) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        clauseId,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getBorderColor(context, category).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      category.toUpperCase(),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: _getBorderColor(context, category),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                               Row(
                                 children: [
@@ -641,13 +666,29 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                                 const Icon(Icons.info_outline, size: 16, color: Color(0xFF2563EB)),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    'Risk Rationale: $reason',
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Risk Rationale: $reason',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      if (reraRefs.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'RERA Citations: $reraRefs',
+                                          style: const TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF2563EB),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ],

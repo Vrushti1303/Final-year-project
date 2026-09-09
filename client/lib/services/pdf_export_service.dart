@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'file_saver/save_file.dart';
@@ -40,17 +39,18 @@ class PdfExportService {
     final PdfDocument document = PdfDocument();
     document.pageSettings.margins.all = 36; // 0.5 inch margins
 
-    // 2. Count risk categories
+    // 2. Count risk categories directly from analysis array
     int redCount = 0;
     int yellowCount = 0;
     int greenCount = 0;
     for (final item in analysis) {
+      final risk = (item['riskLevel'] ?? '').toString().toUpperCase();
       final cat = (item['category'] ?? '').toString().toLowerCase();
-      if (cat.contains('red')) {
+      if (risk == 'HIGH_RISK' || cat.contains('red')) {
         redCount++;
-      } else if (cat.contains('yellow')) {
+      } else if (risk == 'CAUTION' || cat.contains('yellow')) {
         yellowCount++;
-      } else if (cat.contains('green')) {
+      } else if (risk == 'COMPLIANT' || cat.contains('green')) {
         greenCount++;
       }
     }
