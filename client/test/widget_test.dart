@@ -7,6 +7,8 @@ import 'package:legal_scanner/screens/analysis_screen.dart';
 import 'package:legal_scanner/screens/welcome_screen.dart';
 
 import 'package:legal_scanner/screens/recent_documents_screen.dart';
+import 'package:legal_scanner/screens/checklists_list_screen.dart';
+import 'package:legal_scanner/screens/checklist_screen.dart';
 
 void main() {
   testWidgets('RecentDocumentsScreen renders with summary stats, search, and documents', (WidgetTester tester) async {
@@ -240,6 +242,44 @@ void main() {
     await tester.pump();
     expect(find.text('Legal AI Assistant'), findsOneWidget);
     expect(find.byType(TextField), findsWidgets);
+  });
+
+  testWidgets('ChecklistsListScreen builds and renders header and action', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ChecklistsListScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.byType(ChecklistsListScreen), findsOneWidget);
+  });
+
+  testWidgets('ChecklistScreen builds with initial title and actions', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ChecklistScreen(
+            type: 'sample_type',
+            initialTitle: 'Resale Apartment Due Diligence',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.byType(ChecklistScreen), findsOneWidget);
+    expect(find.text('Resale Apartment Due Diligence'), findsOneWidget);
   });
 }
 

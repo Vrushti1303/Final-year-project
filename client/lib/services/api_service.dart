@@ -256,6 +256,51 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> deleteChecklistItem(String type, String itemId) async {
+    final token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/checklists/$type/items/$itemId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to delete checklist item');
+    }
+  }
+
+  static Future<bool> deleteChecklist(String type) async {
+    final token = await _getToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/checklists/$type'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    return response.statusCode == 200;
+  }
+
+  static Future<Map<String, dynamic>> renameChecklist(String type, String title) async {
+    final token = await _getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/checklists/$type/rename'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'title': title}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to rename checklist');
+    }
+  }
+
   static Future<Map<String, dynamic>> chat(List<Map<String, dynamic>> history, {String? sessionId}) async {
     final token = await _getToken();
     final sanitizedHistory = history.map((m) => {
