@@ -525,26 +525,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
               // 2x2 Grid Layout for Desktop & Tablet
               return Column(
                 children: [
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
-                      ],
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
+                    ],
                   ),
                   const SizedBox(height: 16),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
-                      ],
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
+                    ],
                   ),
                 ],
               );
@@ -1344,10 +1340,10 @@ class _QuickActionCardState extends State<_QuickActionCard> {
       child: GestureDetector(
         onTap: widget.item.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          margin: EdgeInsets.only(top: _isHovered ? 0 : 4, bottom: _isHovered ? 4 : 0),
+          duration: const Duration(milliseconds: 200),
+          transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          constraints: const BoxConstraints(minHeight: 148),
           decoration: BoxDecoration(
             color: widget.isDark
                 ? (_isHovered ? const Color(0xFF1E334D) : const Color(0xFF2B2920))
@@ -1363,12 +1359,13 @@ class _QuickActionCardState extends State<_QuickActionCard> {
               BoxShadow(
                 color: Colors.black.withValues(alpha: _isHovered ? (widget.isDark ? 0.28 : 0.06) : (widget.isDark ? 0.18 : 0.02)),
                 blurRadius: _isHovered ? 10 : 4,
-                offset: Offset(0, _isHovered ? 3 : 2),
+                offset: Offset(0, _isHovered ? 4 : 2),
               ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Top Row: Icon on left, optional Badge on right
               Row(
@@ -1425,7 +1422,7 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // Title
               Text(
@@ -1439,22 +1436,19 @@ class _QuickActionCardState extends State<_QuickActionCard> {
               ),
               const SizedBox(height: 3),
 
-              // Description with consistent fixed height for perfect CTA baseline alignment
-              SizedBox(
-                height: 38,
-                child: Text(
-                  widget.item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+              // Description
+              Text(
+                widget.item.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                  height: 1.3,
                 ),
               ),
 
-              // Optional Progress Bar (consistent section for all cards)
+              // Optional Progress Bar
               if (widget.item.showProgress) ...[
                 const SizedBox(height: 6),
                 ClipRRect(
@@ -1472,8 +1466,6 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                     ),
                   ),
                 ),
-              ] else ...[
-                const SizedBox(height: 9),
               ],
 
               const SizedBox(height: 10),

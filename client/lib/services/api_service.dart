@@ -105,6 +105,41 @@ class ApiService {
     }
   }
 
+  static Future<bool> renameDocument(String documentId, String newTitle) async {
+    try {
+      final token = await _getToken();
+      final response = await http.patch(
+        Uri.parse('$baseUrl/documents/$documentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'title': newTitle.trim()}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error renaming document: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteDocument(String documentId) async {
+    try {
+      final token = await _getToken();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/documents/$documentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error deleting document: $e');
+      return false;
+    }
+  }
+
   static Future<String> explainSnippet(String context, String snippet) async {
     final response = await http.post(
       Uri.parse('$baseUrl/explain'),

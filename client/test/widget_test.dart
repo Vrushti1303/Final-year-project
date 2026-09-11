@@ -6,7 +6,109 @@ import 'package:legal_scanner/screens/chat_screen.dart';
 import 'package:legal_scanner/screens/analysis_screen.dart';
 import 'package:legal_scanner/screens/welcome_screen.dart';
 
+import 'package:legal_scanner/screens/recent_documents_screen.dart';
+
 void main() {
+  testWidgets('RecentDocumentsScreen renders with summary stats, search, and documents', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final sampleDocs = [
+      {
+        '_id': 'doc_001',
+        'title': 'Dahanu Flat Sale Deed.pdf',
+        'riskLevel': 'High Risk',
+        'docSize': '14.3 MB',
+        'createdAt': DateTime.now().toIso8601String(),
+        'sourceType': 'PDF Document',
+        'originalText': 'Sample text',
+        'analysis': [],
+      },
+      {
+        '_id': 'doc_002',
+        'title': 'Commercial Lease Agreement.pdf',
+        'riskLevel': 'Compliant',
+        'docSize': '2.1 MB',
+        'createdAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'sourceType': 'PDF Document',
+        'originalText': 'Sample text 2',
+        'analysis': [],
+      },
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: RecentDocumentsScreen(initialDocs: sampleDocs),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.byType(RecentDocumentsScreen), findsOneWidget);
+    expect(find.text('Recent Documents'), findsOneWidget);
+    expect(find.text('Document Legal Repository'), findsOneWidget);
+    expect(find.text('Dahanu Flat Sale Deed.pdf'), findsOneWidget);
+    expect(find.text('Commercial Lease Agreement.pdf'), findsOneWidget);
+    expect(find.text('High Risk'), findsWidgets);
+    expect(find.text('Compliant'), findsWidgets);
+    expect(find.text('Scan New Document'), findsOneWidget);
+  });
+
+  testWidgets('RecentDocumentsScreen document card three-dot menu displays all 6 options in correct order', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final sampleDocs = [
+      {
+        '_id': 'doc_001',
+        'title': 'Dahanu Flat Sale Deed.pdf',
+        'riskLevel': 'High Risk',
+        'docSize': '14.3 MB',
+        'createdAt': DateTime.now().toIso8601String(),
+        'sourceType': 'PDF Document',
+        'originalText': 'Sample text',
+        'analysis': [],
+      },
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: RecentDocumentsScreen(initialDocs: sampleDocs),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    // Find the three dot button
+    final menuButton = find.byIcon(Icons.more_vert_rounded);
+    expect(menuButton, findsOneWidget);
+
+    // Tap to open popup menu
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    // Verify all 6 options exist
+    expect(find.text('View Document'), findsOneWidget);
+    expect(find.text('View Analysis'), findsOneWidget);
+    expect(find.text('Download Risk Report'), findsOneWidget);
+    expect(find.text('Rename Document'), findsOneWidget);
+    expect(find.text('Re-analyze Document'), findsOneWidget);
+    expect(find.text('Delete Document'), findsOneWidget);
+
+    // Verify icons
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.analytics_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+  });
   testWidgets('WelcomeScreen renders hero, CTA, features, and risk sections on Desktop', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1.0;
