@@ -23,6 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final ScrollController _homeScrollController = ScrollController();
 
   List<_RecentDocItem> _recentDocs = [];
   List<dynamic> _checklists = [];
@@ -108,6 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   @override
   void dispose() {
     _animationController.dispose();
+    _homeScrollController.dispose();
     super.dispose();
   }
 
@@ -185,6 +187,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       child: SlideTransition(
                         position: _slideAnimation,
                         child: SingleChildScrollView(
+                          controller: _homeScrollController,
                           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
                           child: Center(
                             child: ConstrainedBox(
@@ -284,7 +287,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        if (_homeScrollController.hasClients) {
+                          _homeScrollController.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -813,6 +824,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
+  static Future<bool> openSafeUrl(BuildContext context, String rawUrl) async {
+    if (rawUrl.trim().isEmpty) return false;
+    String cleanUrl = rawUrl.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://$cleanUrl';
+    }
+    try {
+      final Uri uri = Uri.parse(cleanUrl);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.platformDefault,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error launching URL ($cleanUrl): $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to open link: $cleanUrl'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _handleReraDetails(
     BuildContext context,
     String alertLink,
@@ -821,11 +863,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     ColorScheme colorScheme,
   ) async {
     if (alertLink.isNotEmpty) {
-      final Uri url = Uri.parse(alertLink);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-        return;
-      }
+      final success = await openSafeUrl(context, alertLink);
+      if (success) return;
     }
     if (context.mounted) {
       showDialog(
@@ -991,25 +1030,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 doc: docs[i],
                 isDark: isDark,
                 onTap: () {
-                  if (docs[i].analysis.isNotEmpty && docs[i].originalText.isNotEmpty) {
-                    _navigateTo(
-                      AnalysisScreen(
-                        originalText: docs[i].originalText,
-                        analysis: docs[i].analysis,
-                        documentTitle: docs[i].title,
-                        sourceType: docs[i].sourceType,
-                        fileData: docs[i].fileData,
-                        mimeType: docs[i].mimeType,
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Opening ${docs[i].title}...'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  }
+                  _navigateTo(
+                    AnalysisScreen(
+                      originalText: docs[i].originalText,
+                      analysis: docs[i].analysis,
+                      documentTitle: docs[i].title,
+                      sourceType: docs[i].sourceType,
+                      fileData: docs[i].fileData,
+                      mimeType: docs[i].mimeType,
+                    ),
+                  );
                 },
               ),
             ],
@@ -1342,8 +1372,8 @@ class _QuickActionCardState extends State<_QuickActionCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          constraints: const BoxConstraints(minHeight: 148),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          constraints: const BoxConstraints(minHeight: 136),
           decoration: BoxDecoration(
             color: widget.isDark
                 ? (_isHovered ? const Color(0xFF1E334D) : const Color(0xFF2B2920))
@@ -1782,10 +1812,7 @@ class _HoverNewsRowState extends State<_HoverNewsRow> {
       child: GestureDetector(
         onTap: () async {
           if (widget.link.isNotEmpty) {
-            final Uri url = Uri.parse(widget.link);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url, mode: LaunchMode.externalApplication);
-            }
+            await _HomeScreenState.openSafeUrl(context, widget.link);
           }
         },
         child: AnimatedContainer(

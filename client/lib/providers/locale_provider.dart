@@ -372,6 +372,12 @@ final Map<String, Map<String, String>> _translations = {
   'recentDocs.scanNewDoc': {'en': 'Scan New Document', 'hi': 'नया दस्तावेज़ स्कैन करें'},
   'recentDocs.repository': {'en': 'Document Legal Repository', 'hi': 'दस्तावेज़ कानूनी रिपॉजिटरी'},
   'recentDocs.repoTitle': {'en': 'Document Legal Repository', 'hi': 'दस्तावेज़ कानूनी रिपॉजिटरी'},
+  'recentDocs.vaultSubtitle': {
+    'en': 'Your property documents, organized and analyzed.',
+    'hi': 'आपके संपत्ति दस्तावेज़, व्यवस्थित और विश्लेषित।',
+  },
+  'recentDocs.secureVault': {'en': 'SECURE LEGAL VAULT', 'hi': 'सुरक्षित कानूनी वॉल्ट'},
+  'recentDocs.documents': {'en': 'DOCUMENTS', 'hi': 'दस्तावेज़'},
   'recentDocs.totalAnalyzed': {
     'en': '{count} total property agreements analyzed',
     'hi': 'कुल {count} संपत्ति समझौतों का विश्लेषण किया गया',

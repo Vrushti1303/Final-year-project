@@ -22,7 +22,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   late final Animation<double> _headlineLine2;
   late final Animation<double> _headlineLine3;
   late final Animation<double> _sideWordsAnim;
-  Offset _mousePos = const Offset(600, 300);
+  final ValueNotifier<Offset> _mousePosNotifier = ValueNotifier<Offset>(const Offset(600, 300));
 
   @override
   void initState() {
@@ -56,6 +56,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   void dispose() {
     _heroEntryController.dispose();
     _scrollController.dispose();
+    _mousePosNotifier.dispose();
     super.dispose();
   }
 
@@ -110,7 +111,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       body: MouseRegion(
         onHover: (event) {
           if (isDesktop) {
-            setState(() => _mousePos = event.position);
+            _mousePosNotifier.value = event.position;
           }
         },
         child: Container(
@@ -125,24 +126,29 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             children: [
               // Subtle interactive ambient glow for desktop
               if (isDesktop)
-                Positioned(
-                  left: _mousePos.dx - 350,
-                  top: _mousePos.dy - 350,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: 700,
-                      height: 700,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.05 : 0.03),
-                            Colors.transparent,
-                          ],
+                ValueListenableBuilder<Offset>(
+                  valueListenable: _mousePosNotifier,
+                  builder: (context, mousePos, _) {
+                    return Positioned(
+                      left: mousePos.dx - 350,
+                      top: mousePos.dy - 350,
+                      child: IgnorePointer(
+                        child: Container(
+                          width: 700,
+                          height: 700,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.05 : 0.03),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               SingleChildScrollView(
                 controller: _scrollController,
@@ -1530,10 +1536,14 @@ class _HeroDocumentScanVisualState extends State<_HeroDocumentScanVisual>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    Wrap(
+                                      alignment: WrapAlignment.spaceBetween,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 6,
+                                      runSpacing: 4,
                                       children: [
                                         Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFEF4444)),
                                             const SizedBox(width: 6),
@@ -1548,10 +1558,10 @@ class _HeroDocumentScanVisualState extends State<_HeroDocumentScanVisual>
                                           ],
                                         ),
                                         Text(
-                                          'Score: 68/100',
+                                          'Score: 84/100',
                                           style: GoogleFonts.inter(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
                                             color: const Color(0xFFEF4444),
                                           ),
                                         ),
@@ -1962,20 +1972,27 @@ class _RiskSystemShowcaseState extends State<_RiskSystemShowcase>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.article_outlined, size: 16, color: Color(0xFF3B82F6)),
                       const SizedBox(width: 8),
-                      Text(
-                        'AGREEMENT FOR SALE (EXTRACT)',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      Flexible(
+                        child: Text(
+                          'AGREEMENT FOR SALE (EXTRACT)',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          ),
                         ),
                       ),
                     ],
@@ -2119,8 +2136,11 @@ class _RiskSystemShowcaseState extends State<_RiskSystemShowcase>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Text(
                 'AI Legal Risk Assessment',

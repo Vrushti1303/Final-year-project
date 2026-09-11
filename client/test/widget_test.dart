@@ -130,7 +130,7 @@ void main() {
     expect(find.text('Sign In'), findsOneWidget);
     expect(find.text('Scan & Extract'), findsOneWidget);
     expect(find.text('Detect Legal Risks'), findsOneWidget);
-    expect(find.text('Understand in Plain English'), findsOneWidget);
+    expect(find.text('Plain-English Insights'), findsWidgets);
   });
 
   testWidgets('WelcomeScreen renders on Mobile without overflow', (WidgetTester tester) async {

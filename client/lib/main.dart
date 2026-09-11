@@ -8,6 +8,39 @@ import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Gracefully handle UI errors without crashing the entire web canvas to a blank white screen
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+  };
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: Colors.transparent,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.refresh_rounded, color: Color(0xFF91ADCD), size: 28),
+              const SizedBox(height: 8),
+              Text(
+                'Temporarily adjusting layout...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   runApp(const ProviderScope(child: LawBuddyApp()));
 }
 
