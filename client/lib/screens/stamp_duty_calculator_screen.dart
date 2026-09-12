@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/user_profile_button.dart';
 import '../services/api_service.dart';
 import '../providers/locale_provider.dart';
@@ -12,7 +13,7 @@ class StampDutyCalculatorScreen extends ConsumerStatefulWidget {
   ConsumerState<StampDutyCalculatorScreen> createState() => _StampDutyCalculatorScreenState();
 }
 
-class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorScreen> {
+class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _propertyValueController = TextEditingController();
@@ -24,6 +25,14 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
   String? _isFirstTimeBuyer;
 
   bool _hasCalculated = false;
+  Offset _mousePos = const Offset(600, 300);
+
+  // Animation Controllers
+  AnimationController? _ambientController;
+  Animation<double>? _pulseAnimation;
+  AnimationController? _entryController;
+  Animation<double>? _fadeAnimation;
+  Animation<Offset>? _slideAnimation;
 
   // Calculation Results
   double _enteredPropertyValue = 0.0;
@@ -65,8 +74,41 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     'No',
   ];
 
+  void _initControllers() {
+    if (_entryController == null) {
+      _entryController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 600),
+      );
+      _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _entryController!, curve: Curves.easeOutCubic),
+      );
+      _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(
+        CurvedAnimation(parent: _entryController!, curve: Curves.easeOutCubic),
+      );
+      _entryController!.forward();
+    }
+
+    _ambientController ??= AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5500),
+    )..repeat(reverse: true);
+
+    _pulseAnimation ??= Tween<double>(begin: 0.85, end: 1.15).animate(
+      CurvedAnimation(parent: _ambientController!, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initControllers();
+  }
+
   @override
   void dispose() {
+    _entryController?.dispose();
+    _ambientController?.dispose();
     _propertyValueController.dispose();
     _circleRateController.dispose();
     super.dispose();
@@ -128,6 +170,7 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
         SnackBar(
           content: Text(loc.translate('calc.fillAllError')),
           backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -138,6 +181,7 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
         SnackBar(
           content: Text(loc.translate('calc.validValueError')),
           backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -164,7 +208,7 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
         break;
     }
 
-    // State specific adjustments (Demo config object)
+    // State specific adjustments
     Map<String, double> stateRateMap = {
       'Maharashtra': 6.0,
       'Karnataka': 5.0,
@@ -205,7 +249,7 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     double regRate = 1.0;
     double regAmount = applicableVal * (regRate / 100.0);
 
-    // Maharashtra registration fee cap rule demo (1% up to ₹30,000)
+    // Maharashtra registration fee cap rule (1% up to ₹30,000)
     if (_selectedState == 'Maharashtra' && regAmount > 30000) {
       regAmount = 30000;
       regRate = (regAmount / applicableVal) * 100.0;
@@ -280,126 +324,178 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final goldAccent = isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B);
+    _initControllers();
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width >= 960;
+
+    final bgGradientColors = isDark
+        ? const [
+            Color(0xFF162B43),
+            Color(0xFF13253A),
+            Color(0xFF101F31),
+          ]
+        : const [
+            Color(0xFFFBF8EE),
+            Color(0xFFF7F1D0),
+            Color(0xFFF4EFE0),
+          ];
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? const [
-                    Color(0xFF162B43),
-                    Color(0xFF13253A),
-                    Color(0xFF101F31),
-                  ]
-                : const [
-                    Color(0xFFFBF8EE),
-                    Color(0xFFF7F1D0),
-                    Color(0xFFF4EFE0),
-                  ],
+      backgroundColor: isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE),
+      body: MouseRegion(
+        onHover: (event) {
+          if (isDesktop) {
+            setState(() => _mousePos = event.position);
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: bgGradientColors,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              _buildHeader(context, colorScheme, isDark, loc),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 860),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildCalculatorFormCard(context, colorScheme, isDark, goldAccent, loc),
-                          if (_hasCalculated) ...[
-                            const SizedBox(height: 28),
-                            _buildResultSummaryCard(context, colorScheme, isDark, goldAccent, loc),
-                          ],
-                          const SizedBox(height: 24),
-                          _buildDisclaimerBox(context, colorScheme, isDark, loc),
-                          const SizedBox(height: 40),
-                        ],
+              // ==========================================
+              // AMBIENT LIGHTING (CYAN PRIMARY FOR STAMP DUTY)
+              // ==========================================
+              AnimatedBuilder(
+                animation: _ambientController!,
+                builder: (context, child) {
+                  final pulse = _pulseAnimation?.value ?? 1.0;
+                  return Stack(
+                    children: [
+                      // Orb 1: Top-Left Cyan Ambient Aurora
+                      Positioned(
+                        top: -140 + (25 * _ambientController!.value),
+                        left: -120 + (20 * _ambientController!.value),
+                        child: IgnorePointer(
+                          child: Container(
+                            width: 580 * pulse,
+                            height: 580 * pulse,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.14 : 0.08),
+                                  const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.06 : 0.03),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, bool isDark, LocaleNotifier loc) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF162B43).withValues(alpha: 0.90) : const Color(0xFFFBF8EE).withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-          ),
-        ),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1140),
-          child: Row(
-            children: [
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+                      // Orb 2: Bottom-Right Gold Ambient Aurora
+                      Positioned(
+                        bottom: -100 + (30 * (1.0 - _ambientController!.value)),
+                        right: -140,
+                        child: IgnorePointer(
+                          child: Container(
+                            width: 620 * (2.0 - pulse),
+                            height: 620 * (2.0 - pulse),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.09 : 0.05),
+                                  const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.04 : 0.02),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Icon(Icons.arrow_back_rounded, color: colorScheme.onSurface, size: 20),
-                  ),
-                ),
+
+                      // Orb 3: Mouse-responsive Interactive Spotlight (Desktop)
+                      if (isDesktop)
+                        Positioned(
+                          left: _mousePos.dx - 350,
+                          top: _mousePos.dy - 350,
+                          child: IgnorePointer(
+                            child: Container(
+                              width: 700,
+                              height: 700,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.045 : 0.025),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
-              const SizedBox(width: 14),
-              Expanded(
+
+              // ==========================================
+              // MAIN CONTENT
+              // ==========================================
+              SafeArea(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      loc.translate('calc.screenTitle'),
-                      style: TextStyle(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        letterSpacing: -0.3,
+                    // TOP BAR
+                    _buildTopBar(context, isDark, loc),
+
+                    // BODY CONTENT
+                    Expanded(
+                      child: FadeTransition(
+                        opacity: _fadeAnimation ?? const AlwaysStoppedAnimation(1.0),
+                        child: SlideTransition(
+                          position: _slideAnimation ?? const AlwaysStoppedAnimation(Offset.zero),
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isDesktop ? 48.0 : 20.0,
+                              vertical: 16.0,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 880),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // HERO HEADER
+                                    _buildHeroHeader(isDark, loc, isDesktop),
+                                    const SizedBox(height: 24),
+
+                                    // CALCULATOR FORM CARD
+                                    _buildCalculatorFormCard(context, isDark, loc, isDesktop),
+
+                                    // RESULTS BREAKDOWN SECTION
+                                    if (_hasCalculated) ...[
+                                      const SizedBox(height: 28),
+                                      _buildResultSummaryCard(context, isDark, loc),
+                                    ],
+
+                                    const SizedBox(height: 24),
+
+                                    // STATUTORY DISCLAIMER
+                                    _buildDisclaimerBox(context, isDark, loc),
+                                    const SizedBox(height: 48),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      loc.translate('calc.screenSubtitle'),
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const UserProfileButton(),
             ],
           ),
         ),
@@ -407,55 +503,246 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     );
   }
 
-  Widget _buildCalculatorFormCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent, LocaleNotifier loc) {
+  // ==========================================
+  // TOP BAR
+  // ==========================================
+  Widget _buildTopBar(BuildContext context, bool isDark, LocaleNotifier loc) {
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+      height: 54,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Left: Back button
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _HoverGlassButton(
+              onTap: () => Navigator.of(context).pop(),
+              isDark: isDark,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.arrow_back_rounded,
+                    color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    loc.translate('common.back'),
+                    style: GoogleFonts.inter(
+                      color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Center: Exact dead-center badge
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.12 : 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.35 : 0.25),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF38BDF8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF38BDF8),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'STATUTORY TAX & REGISTRY CALCULATOR',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF38BDF8),
+                      letterSpacing: 0.9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Right: Profile Button
+          const Align(
+            alignment: Alignment.centerRight,
+            child: UserProfileButton(),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(26.0),
+    );
+  }
+
+  // ==========================================
+  // HERO HEADER
+  // ==========================================
+  Widget _buildHeroHeader(bool isDark, LocaleNotifier loc, bool isDesktop) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Eyebrow Tag
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.14 : 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.35 : 0.25),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF38BDF8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFF38BDF8),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                'STATE REGISTRATION ACT • CIRCLE RATES • STAMP REBATES',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: const Color(0xFF38BDF8),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Main Title
+        Text(
+          loc.translate('calc.screenTitle'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: isDesktop ? 30 : 24,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+            color: isDark ? Colors.white : const Color(0xFF101F31),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Subtitle
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Text(
+            loc.translate('calc.screenSubtitle'),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: isDesktop ? 14 : 13,
+              height: 1.5,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // CALCULATOR FORM CARD
+  // ==========================================
+  Widget _buildCalculatorFormCard(BuildContext context, bool isDark, LocaleNotifier loc, bool isDesktop) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2F48).withValues(alpha: 0.95) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.35 : 0.25),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.08 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(isDesktop ? 32.0 : 20.0),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Card Header
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: purpleAccent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: purpleAccent.withValues(alpha: 0.25)),
-                  ),
-                  child: Icon(Icons.calculate_rounded, color: purpleAccent, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    loc.translate('calc.cardTitle'),
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+                    color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.2 : 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.4),
                     ),
+                  ),
+                  child: const Icon(Icons.calculate_rounded, color: Color(0xFF38BDF8), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.translate('calc.cardTitle'),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: isDark ? Colors.white : const Color(0xFF101F31),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Input deed consideration, circle valuation & concessions',
+                        style: GoogleFonts.inter(
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 26),
 
+            // Form Inputs Grid
             LayoutBuilder(
               builder: (context, constraints) {
                 final isTwoCol = constraints.maxWidth > 560;
@@ -467,7 +754,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   items: _propertyTypes,
                   itemLabelBuilder: (val) => _getPropertyTypeDisplay(val, loc),
                   icon: Icons.home_work_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   onChanged: (val) => setState(() => _selectedPropertyType = val),
                 );
@@ -478,7 +764,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   hintText: loc.translate('calc.selectState'),
                   items: _states,
                   icon: Icons.location_on_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   onChanged: (val) => setState(() => _selectedState = val),
                 );
@@ -488,7 +773,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   hint: loc.translate('calc.enterAgreementValue'),
                   controller: _propertyValueController,
                   icon: Icons.currency_rupee_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   validator: (val) {
                     if ((val == null || val.trim().isEmpty) && _circleRateController.text.trim().isEmpty) {
@@ -503,7 +787,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   hint: loc.translate('calc.enterCircleRate'),
                   controller: _circleRateController,
                   icon: Icons.account_balance_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   validator: (val) {
                     if ((val == null || val.trim().isEmpty) && _propertyValueController.text.trim().isEmpty) {
@@ -520,7 +803,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   items: _genders,
                   itemLabelBuilder: (val) => _getGenderDisplay(val, loc),
                   icon: Icons.person_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   onChanged: (val) => setState(() => _selectedGender = val),
                 );
@@ -532,7 +814,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   items: _yesNoOptions,
                   itemLabelBuilder: (val) => _getYesNoDisplay(val, loc),
                   icon: Icons.verified_user_rounded,
-                  colorScheme: colorScheme,
                   isDark: isDark,
                   onChanged: (val) => setState(() => _isFirstTimeBuyer = val),
                 );
@@ -544,25 +825,25 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(child: propertyTypeField),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 18),
                           Expanded(child: stateField),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(child: propertyValueField),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 18),
                           Expanded(child: circleRateField),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(child: genderField),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 18),
                           Expanded(child: firstTimeBuyerField),
                         ],
                       ),
@@ -588,68 +869,26 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
               },
             ),
 
-            const SizedBox(height: 26),
+            const SizedBox(height: 30),
 
-            // Buttons: Calculate & Reset
+            // Action Buttons: Calculate & Reset
             Row(
               children: [
                 Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: purpleAccent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                        shadowColor: purpleAccent.withValues(alpha: 0.3),
-                      ),
-                      onPressed: _calculateStampDuty,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.calculate_rounded, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.translate('calc.calculateBtn'),
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
+                  flex: 3,
+                  child: _HoverCalculateButton(
+                    onTap: _calculateStampDuty,
+                    label: loc.translate('calc.calculateBtn'),
+                    isDark: isDark,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   flex: 1,
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.onSurfaceVariant,
-                        side: BorderSide(
-                          color: isDark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFFCBD5E1),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _resetForm,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.restart_alt_rounded, size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            loc.translate('calc.resetBtn'),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _HoverResetButton(
+                    onTap: _resetForm,
+                    label: loc.translate('calc.resetBtn'),
+                    isDark: isDark,
                   ),
                 ),
               ],
@@ -667,7 +906,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     required List<String> items,
     String Function(String)? itemLabelBuilder,
     required IconData icon,
-    required ColorScheme colorScheme,
     required bool isDark,
     required ValueChanged<String?> onChanged,
   }) {
@@ -676,21 +914,21 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
+            color: isDark ? const Color(0xFF101F31) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFCBD5E1),
+              color: isDark ? const Color(0xFF334356) : const Color(0xFFCBD5E1),
             ),
           ),
           child: DropdownButtonHideUnderline(
@@ -698,35 +936,38 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
               value: value,
               hint: Row(
                 children: [
-                  Icon(icon, size: 18, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                  Icon(icon, size: 18, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                   const SizedBox(width: 10),
                   Text(
                     hintText,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w400,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
               isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: colorScheme.onSurfaceVariant),
+              dropdownColor: isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE),
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              ),
               items: items.map((String item) {
                 final display = itemLabelBuilder != null ? itemLabelBuilder(item) : item;
                 return DropdownMenuItem<String>(
                   value: item,
                   child: Row(
                     children: [
-                      Icon(icon, size: 18, color: colorScheme.primary),
+                      Icon(icon, size: 18, color: const Color(0xFF38BDF8)),
                       const SizedBox(width: 10),
                       Text(
                         display,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -746,7 +987,6 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     required String hint,
     required TextEditingController controller,
     required IconData icon,
-    required ColorScheme colorScheme,
     required bool isDark,
     required FormFieldValidator<String> validator,
   }) {
@@ -755,127 +995,185 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: TextStyle(fontSize: 14, color: colorScheme.onSurface, fontWeight: FontWeight.w500),
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+            fontWeight: FontWeight.w600,
+          ),
           validator: validator,
           decoration: InputDecoration(
             isDense: true,
             hintText: hint,
-            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            prefixIcon: Icon(icon, size: 18, color: colorScheme.primary),
+            hintStyle: GoogleFonts.inter(
+              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+              fontSize: 13,
+            ),
+            filled: true,
+            fillColor: isDark ? const Color(0xFF101F31) : Colors.white,
+            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF38BDF8)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF334356) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF334356) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildResultSummaryCard(BuildContext context, ColorScheme colorScheme, bool isDark, Color purpleAccent, LocaleNotifier loc) {
+  // ==========================================
+  // RESULTS SUMMARY CARD
+  // ==========================================
+  Widget _buildResultSummaryCard(BuildContext context, bool isDark, LocaleNotifier loc) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF1B2F48).withValues(alpha: 0.95) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-          width: 1.5,
+          color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.45 : 0.35),
+          width: 1.4,
         ),
         boxShadow: [
           BoxShadow(
-            color: purpleAccent.withValues(alpha: isDark ? 0.15 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.12 : 0.06),
+            blurRadius: 22,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(26.0),
+      padding: const EdgeInsets.all(28.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                      ),
                     ),
-                    child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981), size: 20),
+                    child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981), size: 22),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Text(
                     loc.translate('calc.summaryTitle'),
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: isDark ? Colors.white : const Color(0xFF101F31),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                     ),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.2 : 0.12),
                   borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _selectedState ?? '',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.place_rounded, size: 13, color: Color(0xFF38BDF8)),
+                    const SizedBox(width: 5),
+                    Text(
+                      _selectedState ?? '',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF38BDF8),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
 
-          _buildResultRow(loc.translate('calc.rowAgreementValue'), _formatIndianRupee(_enteredPropertyValue), colorScheme),
-          const SizedBox(height: 10),
-          _buildResultRow(loc.translate('calc.rowCircleRate'), _formatIndianRupee(_enteredCircleRate), colorScheme),
-          const SizedBox(height: 10),
+          _buildResultRow(loc.translate('calc.rowAgreementValue'), _formatIndianRupee(_enteredPropertyValue), isDark),
+          const SizedBox(height: 12),
+          _buildResultRow(loc.translate('calc.rowCircleRate'), _formatIndianRupee(_enteredCircleRate), isDark),
+          const SizedBox(height: 12),
           _buildResultRow(
             loc.translate('calc.rowApplicableMarketValue'),
             _formatIndianRupee(_applicableMarketValue),
-            colorScheme,
+            isDark,
             isBold: true,
+            highlightColor: const Color(0xFF38BDF8),
           ),
-          const Divider(height: 24),
+          const SizedBox(height: 16),
+          Divider(height: 1, thickness: 0.8, color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0)),
+          const SizedBox(height: 16),
 
           _buildResultRow(
             loc.translate('calc.rowStampDuty', {'rate': _stampDutyRate.toStringAsFixed(1)}),
             _formatIndianRupee(_stampDutyAmount),
-            colorScheme,
+            isDark,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _buildResultRow(
             loc.translate('calc.rowRegistration', {'rate': _registrationRate.toStringAsFixed(1)}),
             _formatIndianRupee(_registrationAmount),
-            colorScheme,
+            isDark,
           ),
-          const Divider(height: 28),
+          const SizedBox(height: 22),
 
           // Total Payable Prominent Box
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             decoration: BoxDecoration(
-              color: purpleAccent.withValues(alpha: isDark ? 0.15 : 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: purpleAccent.withValues(alpha: 0.3)),
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [
+                        const Color(0xFF38BDF8).withValues(alpha: 0.18),
+                        const Color(0xFF1D4ED8).withValues(alpha: 0.12),
+                      ]
+                    : [
+                        const Color(0xFF38BDF8).withValues(alpha: 0.12),
+                        const Color(0xFF1D4ED8).withValues(alpha: 0.06),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF38BDF8).withValues(alpha: 0.4),
+                width: 1.2,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -885,18 +1183,18 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                   children: [
                     Text(
                       loc.translate('calc.totalPayable'),
-                      style: TextStyle(
-                        color: purpleAccent,
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF38BDF8),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
+                        letterSpacing: 0.9,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       loc.translate('calc.stampPlusReg'),
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
+                      style: GoogleFonts.inter(
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                         fontSize: 12,
                       ),
                     ),
@@ -904,11 +1202,11 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
                 ),
                 Text(
                   _formatIndianRupee(_totalPayable),
-                  style: TextStyle(
-                    color: purpleAccent,
-                    fontSize: 22,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: isDark ? Colors.white : const Color(0xFF101F31),
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.6,
                   ),
                 ),
               ],
@@ -919,36 +1217,47 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
     );
   }
 
-  Widget _buildResultRow(String label, String value, ColorScheme colorScheme, {bool isBold = false}) {
+  Widget _buildResultRow(
+    String label,
+    String value,
+    bool isDark, {
+    bool isBold = false,
+    Color? highlightColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: isBold ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+          style: GoogleFonts.inter(
+            color: isBold
+                ? (isDark ? Colors.white : const Color(0xFF101F31))
+                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
             fontSize: 14,
-            fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontSize: 14,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+          style: GoogleFonts.plusJakartaSans(
+            color: highlightColor ?? (isDark ? Colors.white : const Color(0xFF101F31)),
+            fontSize: 15,
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w700,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDisclaimerBox(BuildContext context, ColorScheme colorScheme, bool isDark, LocaleNotifier loc) {
+  // ==========================================
+  // DISCLAIMER BOX
+  // ==========================================
+  Widget _buildDisclaimerBox(BuildContext context, bool isDark, LocaleNotifier loc) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2B2920) : const Color(0xFFF7F1D0),
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1B2F48).withValues(alpha: 0.6) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
@@ -956,19 +1265,213 @@ class _StampDutyCalculatorScreenState extends ConsumerState<StampDutyCalculatorS
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: colorScheme.onSurfaceVariant, size: 18),
-          const SizedBox(width: 10),
+          const Icon(Icons.info_outline_rounded, color: Color(0xFF38BDF8), size: 19),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               loc.translate('calc.disclaimer'),
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
+              style: GoogleFonts.inter(
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                 fontSize: 12,
-                height: 1.4,
+                height: 1.45,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// HOVER CALCULATE BUTTON
+// ==========================================
+class _HoverCalculateButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final String label;
+  final bool isDark;
+
+  const _HoverCalculateButton({
+    required this.onTap,
+    required this.label,
+    required this.isDark,
+  });
+
+  @override
+  State<_HoverCalculateButton> createState() => _HoverCalculateButtonState();
+}
+
+class _HoverCalculateButtonState extends State<_HoverCalculateButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 50,
+          transform: Matrix4.translationValues(0, _isHovered ? -2.0 : 0, 0),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF38BDF8).withValues(alpha: _isHovered ? 0.35 : 0.2),
+                blurRadius: _isHovered ? 14 : 8,
+                offset: Offset(0, _isHovered ? 4 : 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.calculate_rounded, size: 20, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// HOVER RESET BUTTON
+// ==========================================
+class _HoverResetButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final String label;
+  final bool isDark;
+
+  const _HoverResetButton({
+    required this.onTap,
+    required this.label,
+    required this.isDark,
+  });
+
+  @override
+  State<_HoverResetButton> createState() => _HoverResetButtonState();
+}
+
+class _HoverResetButtonState extends State<_HoverResetButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 50,
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? (widget.isDark ? const Color(0xFF334356).withValues(alpha: 0.5) : const Color(0xFFE2E8F0))
+                : (widget.isDark ? const Color(0xFF101F31) : Colors.white),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: widget.isDark ? const Color(0xFF334356) : const Color(0xFFCBD5E1),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.restart_alt_rounded,
+                size: 18,
+                color: widget.isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: widget.isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// HOVER GLASS BUTTON
+// ==========================================
+class _HoverGlassButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _HoverGlassButton({
+    required this.child,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  State<_HoverGlassButton> createState() => _HoverGlassButtonState();
+}
+
+class _HoverGlassButtonState extends State<_HoverGlassButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? (widget.isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.22) : const Color(0xFF38BDF8).withValues(alpha: 0.18))
+                : (widget.isDark ? const Color(0xFF1B2F48).withValues(alpha: 0.7) : const Color(0xFFFBF8EE).withValues(alpha: 0.9)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isHovered
+                  ? const Color(0xFF38BDF8).withValues(alpha: 0.6)
+                  : (widget.isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0)),
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: widget.child,
+        ),
       ),
     );
   }
