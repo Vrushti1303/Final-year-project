@@ -39,7 +39,7 @@ class LawBuddyApp extends ConsumerWidget {
           onSurfaceVariant: Color(0xFF63748A), // Secondary Navy Text
           outline: Color(0xFFE4DDD0), // Subtle Taupe Border
         ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).copyWith(
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme).copyWith(
           displayLarge: const TextStyle(color: Color(0xFF244A78), fontWeight: FontWeight.w700, letterSpacing: -0.5),
           titleLarge: const TextStyle(color: Color(0xFF244A78), fontWeight: FontWeight.w600, letterSpacing: -0.3),
           titleMedium: const TextStyle(color: Color(0xFF244A78), fontWeight: FontWeight.w600),
@@ -87,7 +87,7 @@ class LawBuddyApp extends ConsumerWidget {
             ),
             elevation: 2,
             shadowColor: const Color(0xFF244A78).withValues(alpha: 0.2),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
@@ -99,7 +99,7 @@ class LawBuddyApp extends ConsumerWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ),
         cardTheme: CardThemeData(
@@ -127,7 +127,7 @@ class LawBuddyApp extends ConsumerWidget {
           onSurfaceVariant: Color(0xFFA5B4C7), // Muted Steel Text
           outline: Color(0xFF334356), // Subtle Dark Border
         ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).copyWith(
           displayLarge: const TextStyle(color: Color(0xFFE8E1D0), fontWeight: FontWeight.w700, letterSpacing: -0.5),
           titleLarge: const TextStyle(color: Color(0xFFE8E1D0), fontWeight: FontWeight.w600, letterSpacing: -0.3),
           titleMedium: const TextStyle(color: Color(0xFFE8E1D0), fontWeight: FontWeight.w600),
