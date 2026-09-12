@@ -127,6 +127,52 @@ router.get('/documents/:id', requireAuth, async (req, res) => {
     }
 });
 
+// PATCH /api/documents/:id (Rename or update document metadata)
+router.patch('/documents/:id', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { title } = req.body;
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'A valid non-empty title is required' });
+        }
+        const doc = await Document.findOneAndUpdate(
+            { _id: req.params.id, userId },
+            { $set: { title: title.trim() } },
+            { new: true }
+        );
+        if (!doc) {
+            return res.status(404).json({ error: 'Document not found or unauthorized' });
+        }
+        res.json({ message: 'Document renamed successfully', document: doc });
+    } catch (error) {
+        console.error('Error renaming document:', error);
+        res.status(500).json({ error: 'Failed to rename document', details: error.message });
+    }
+});
+
+// PUT /api/documents/:id (Alias for updating document)
+router.put('/documents/:id', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { title } = req.body;
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'A valid non-empty title is required' });
+        }
+        const doc = await Document.findOneAndUpdate(
+            { _id: req.params.id, userId },
+            { $set: { title: title.trim() } },
+            { new: true }
+        );
+        if (!doc) {
+            return res.status(404).json({ error: 'Document not found or unauthorized' });
+        }
+        res.json({ message: 'Document updated successfully', document: doc });
+    } catch (error) {
+        console.error('Error updating document:', error);
+        res.status(500).json({ error: 'Failed to update document', details: error.message });
+    }
+});
+
 // DELETE /api/documents/:id (Strictly scoped to authenticated user)
 router.delete('/documents/:id', requireAuth, async (req, res) => {
     try {
