@@ -356,7 +356,8 @@ class _ChecklistsListScreenState extends ConsumerState<ChecklistsListScreen> wit
                       controller: controller,
                       autofocus: true,
                       enabled: !isGenerating,
-                      maxLines: 2,
+                      maxLines: 1,
+                      textAlignVertical: TextAlignVertical.center,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
@@ -365,8 +366,9 @@ class _ChecklistsListScreenState extends ConsumerState<ChecklistsListScreen> wit
                         hintText: tr('checklists.hint'),
                         hintStyle: GoogleFonts.inter(
                           color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         filled: true,
                         fillColor: isDark ? const Color(0xFF101F31) : Colors.white,
                         border: OutlineInputBorder(

@@ -497,6 +497,7 @@ class _ProfileDialogContentState extends ConsumerState<_ProfileDialogContent> {
                   autofocus: true,
                   style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
                   decoration: InputDecoration(
+                    hintText: currentLanguage == AppLanguage.hindi ? 'पूरा नाम' : 'Full name',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     filled: true,
