@@ -313,6 +313,10 @@ final Map<String, Map<String, String>> _translations = {
     'en': 'Rate limit reached. Please wait a moment before sending another query.',
     'hi': 'दर सीमा पूरी हो गई। कृपया अगला प्रश्न भेजने से पहले कुछ देर प्रतीक्षा करें।',
   },
+  'chat.copiedToClipboard': {
+    'en': 'Copied to clipboard',
+    'hi': 'क्लिपबोर्ड पर कॉपी किया गया',
+  },
   'chat.rateLimitToast': {
     'en': 'Rate limit exceeded. Please wait a moment.',
     'hi': 'दर सीमा पार हो गई। कृपया कुछ क्षण प्रतीक्षा करें।',
@@ -485,6 +489,10 @@ final Map<String, Map<String, String>> _translations = {
   'recentDocs.searchHint': {'en': 'Search documents', 'hi': 'दस्तावेज़ खोजें'},
   'recentDocs.all': {'en': 'All', 'hi': 'सभी'},
   'recentDocs.filterAll': {'en': 'All', 'hi': 'सभी'},
+  'recentDocs.resetFilters': {
+    'en': 'Reset Filters',
+    'hi': 'फ़िल्टर रीसेट करें',
+  },
   'recentDocs.noDocsMatching': {'en': 'No documents matching "{query}"', 'hi': '"{query}" से मेल खाता कोई दस्तावेज़ नहीं मिला'},
   'recentDocs.noMatch': {'en': 'No documents matching "{query}"', 'hi': '"{query}" से मेल खाता कोई दस्तावेज़ नहीं मिला'},
   'recentDocs.noDocsCategory': {'en': 'No documents in this category', 'hi': 'इस श्रेणी में कोई दस्तावेज़ नहीं'},
@@ -527,6 +535,7 @@ final Map<String, Map<String, String>> _translations = {
   // Analysis Screen
   'analysis.reportTitle': {'en': 'Risk Analysis Report', 'hi': 'जोखिम विश्लेषण रिपोर्ट'},
   'analysis.title': {'en': 'Risk Analysis Report', 'hi': 'जोखिम विश्लेषण रिपोर्ट'},
+  'analysis.pageOneOfOne': {'en': 'PAGE 1 OF 1', 'hi': 'पृष्ठ 1 / 1'},
   'analysis.highRiskDetected': {'en': 'High Legal Risk Detected', 'hi': 'उच्च कानूनी जोखिम का पता चला'},
   'analysis.moderateCaution': {'en': 'Moderate Caution Advised', 'hi': 'मध्यम सावधानी की सलाह दी गई है'},
   'analysis.standardLowRisk': {'en': 'Standard / Low Risk', 'hi': 'मानक / कम जोखिम'},
@@ -630,5 +639,9 @@ final Map<String, Map<String, String>> _translations = {
   'auth.otpResendFailed': {'en': 'Failed to resend OTP', 'hi': 'ओटीपी पुनः भेजने में विफल'},
   'auth.enterValidOtp': {'en': 'Please enter a valid 6-digit OTP', 'hi': 'कृपया एक मान्य 6-अंकीय ओटीपी दर्ज करें'},
   'auth.verificationSuccess': {'en': 'Verification successful!', 'hi': 'सत्यापन सफल!'},
+  'auth.mobileOtpComingSoon': {
+    'en': 'Mobile OTP coming soon. Please use email.',
+    'hi': 'मोबाइल ओटीपी जल्द आ रहा है। कृपया ईमेल का उपयोग करें।',
+  },
   'auth.invalidOtp': {'en': 'Invalid OTP', 'hi': 'अमान्य ओटीपी'},
 };

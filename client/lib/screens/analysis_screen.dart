@@ -1055,11 +1055,14 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.verified_outlined, size: 12, color: Color(0xFF16A34A)),
-                          SizedBox(width: 4),
-                          Text('PAGE 1 OF 1', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                          const Icon(Icons.verified_outlined, size: 12, color: Color(0xFF16A34A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            ref.read(localeProvider.notifier).translate('analysis.pageOneOfOne'),
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                          ),
                         ],
                       ),
                     ),

@@ -1487,7 +1487,7 @@ class _PromptCardState extends ConsumerState<_PromptCard> {
 // ==========================================
 // ANIMATED MESSAGE BUBBLE
 // ==========================================
-class _AnimatedMessageBubble extends StatefulWidget {
+class _AnimatedMessageBubble extends ConsumerStatefulWidget {
   final Map<String, dynamic> message;
   final Function(String) onSuggestionTap;
   final VoidCallback? onScrollRequest;
@@ -1500,10 +1500,10 @@ class _AnimatedMessageBubble extends StatefulWidget {
   });
 
   @override
-  State<_AnimatedMessageBubble> createState() => _AnimatedMessageBubbleState();
+  ConsumerState<_AnimatedMessageBubble> createState() => _AnimatedMessageBubbleState();
 }
 
-class _AnimatedMessageBubbleState extends State<_AnimatedMessageBubble> {
+class _AnimatedMessageBubbleState extends ConsumerState<_AnimatedMessageBubble> {
   bool _copied = false;
   String _fullText = '';
   String _displayedText = '';
@@ -1616,13 +1616,14 @@ class _AnimatedMessageBubbleState extends State<_AnimatedMessageBubble> {
     Clipboard.setData(ClipboardData(text: text));
     setState(() => _copied = true);
 
+    final loc = ref.read(localeProvider.notifier);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Copied to clipboard'),
+            const Icon(Icons.check_circle, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(loc.translate('chat.copiedToClipboard')),
           ],
         ),
         duration: const Duration(seconds: 2),

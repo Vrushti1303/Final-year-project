@@ -775,7 +775,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       ),
       const _FeatureCard(
         icon: Icons.calculate_outlined,
-        accentColor: Color(0xFF8B5CF6),
+        accentColor: Color(0xFFC5A85E),
         tag: 'STATE-WISE',
         title: 'Stamp Duty Calculator',
         description: 'Compute state-wise stamp duty, registration charges, local cess, and female buyer discounts across India.',

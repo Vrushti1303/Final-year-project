@@ -76,8 +76,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       if (!_isEmailMode) {
+        final loc = ref.read(localeProvider.notifier);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mobile OTP coming soon. Please use email.')),
+          SnackBar(content: Text(loc.translate('auth.mobileOtpComingSoon'))),
         );
         return;
       }

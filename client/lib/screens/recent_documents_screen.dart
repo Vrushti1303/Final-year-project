@@ -1250,7 +1250,7 @@ class _RecentDocumentsScreenState extends ConsumerState<RecentDocumentsScreen> {
                 });
               },
               icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Reset Filters'),
+              label: Text(tr('recentDocs.resetFilters')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF2563EB),
                 side: const BorderSide(color: Color(0xFF2563EB)),
@@ -1409,7 +1409,7 @@ class _DocumentCardItemState extends State<_DocumentCardItem> {
     final sLower = sourceType.toLowerCase();
     if (sLower.contains('photo') || sLower.contains('image')) {
       formatIcon = Icons.image_rounded;
-      formatColor = const Color(0xFF8B5CF6);
+      formatColor = const Color(0xFF38BDF8);
     } else if (sLower.contains('text')) {
       formatIcon = Icons.notes_rounded;
       formatColor = const Color(0xFF0EA5E9);
@@ -1715,7 +1715,7 @@ class _DocumentCardItemState extends State<_DocumentCardItem> {
                         const Icon(
                           Icons.refresh_rounded,
                           size: 18,
-                          color: Color(0xFF8B5CF6),
+                          color: Color(0xFF38BDF8),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
