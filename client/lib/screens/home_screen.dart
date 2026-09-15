@@ -330,33 +330,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                                           LayoutBuilder(
                                             builder: (context, constraints) {
                                               if (constraints.maxWidth >= 900) {
-                                                return IntrinsicHeight(
-                                                  child: Row(
-                                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                    children: [
-                                                      Expanded(
-                                                        flex: 6,
-                                                        child: Column(
-                                                          children: [
-                                                            _buildRiskBreakdownCard(context, isDark),
-                                                            const SizedBox(height: 24),
-                                                            _buildChecklistProgressCard(context, isDark),
-                                                          ],
-                                                        ),
+                                                return Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Expanded(
+                                                      flex: 6,
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          _buildRiskBreakdownCard(context, isDark),
+                                                          const SizedBox(height: 24),
+                                                          _buildChecklistProgressCard(context, isDark),
+                                                        ],
                                                       ),
-                                                      const SizedBox(width: 24),
-                                                      Expanded(
-                                                        flex: 5,
-                                                        child: Column(
-                                                          children: [
-                                                            _buildRecentActivityCard(context, isDark),
-                                                            const SizedBox(height: 24),
-                                                            _buildLegalUpdatesCard(context, isDark),
-                                                          ],
-                                                        ),
+                                                    ),
+                                                    const SizedBox(width: 24),
+                                                    Expanded(
+                                                      flex: 5,
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          _buildRecentActivityCard(context, isDark),
+                                                          const SizedBox(height: 24),
+                                                          _buildLegalUpdatesCard(context, isDark),
+                                                        ],
                                                       ),
-                                                    ],
-                                                  ),
+                                                    ),
+                                                  ],
                                                 );
                                               } else {
                                                 return Column(
@@ -722,6 +722,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   // TOP NAVIGATION BAR
   // ==========================================
   Widget _buildTopNav(BuildContext context, bool isDark, bool isDesktop) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final String userName = (user?.fullName != null && user!.fullName.trim().isNotEmpty)
+        ? user.fullName.trim()
+        : 'User';
+    final String initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -734,23 +741,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         ),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: Icon(
-              Icons.menu_rounded,
-              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-            ),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            tooltip: 'Menu',
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.menu_rounded,
+                  color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                ),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                tooltip: 'Menu',
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'LawBuddy',
+                style: GoogleFonts.inter(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text(
-            'LawBuddy',
-            style: GoogleFonts.inter(
-              fontSize: 16.5,
-              fontWeight: FontWeight.w800,
-              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-              letterSpacing: -0.3,
+          InkWell(
+            onTap: () => showProfileDialog(context, ref),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+                  width: 1.5,
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 14,
+                backgroundColor: const Color(0xFF91ADCD).withValues(alpha: 0.2),
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -839,7 +877,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
-                                'YOUR PROPERTY • YOUR RIGHTS • YOUR CONFIDENCE',
+                                loc.translate('home.heroTag'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.inter(
@@ -869,7 +907,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                       // Workspace Subtitle
                       Text(
-                        'Review your agreements, check RERA risks, and make informed property decisions with AI built for Indian real estate.',
+                        loc.translate('home.heroSub'),
                         style: GoogleFonts.inter(
                           fontSize: isDesktop ? 13 : 12,
                           height: 1.4,
@@ -1203,6 +1241,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        onPressed: () => _navigateTo(const ScanScreen()),
+                        icon: const Icon(Icons.document_scanner_outlined, size: 15),
+                        label: Text(
+                          loc.translate('home.scanNewDocument'),
+                          style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDark ? const Color(0xFF244A78) : const Color(0xFF244A78),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1279,8 +1332,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                         const SizedBox(height: 4),
                         Text(
                           latestDoc.analysis.isNotEmpty
-                              ? '${latestDoc.analysis.length} clauses evaluated across tenancy & title compliance'
-                              : 'AI clause extraction and legal risk assessment complete',
+                              ? loc.translate('home.clausesEvaluated', {'count': latestDoc.analysis.length.toString()})
+                              : loc.translate('home.assessmentComplete'),
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
@@ -1478,6 +1531,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               ),
             ],
           ),
+          const SizedBox(height: 14),
+
+          // Analysis Summary Notice
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: highRisk > 0
+                  ? const Color(0xFFEF4444).withValues(alpha: isDark ? 0.12 : 0.08)
+                  : const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: highRisk > 0
+                    ? const Color(0xFFEF4444).withValues(alpha: 0.25)
+                    : const Color(0xFF10B981).withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  highRisk > 0 ? Icons.warning_amber_rounded : Icons.verified_user_outlined,
+                  size: 15,
+                  color: highRisk > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    highRisk > 0
+                        ? '$highRisk high-risk clauses flagged across analyzed documents'
+                        : 'All analyzed documents within normal legal risk parameters',
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1522,7 +1614,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
     int totalTasks = 0;
     int completedTasks = 0;
-    String activeTitle = 'Property Purchase Diligence';
+    String activeTitle = loc.translate('home.defaultChecklistTitle');
     List<dynamic> pendingItems = [];
 
     for (final cl in _checklists) {
@@ -1534,7 +1626,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       for (final it in items) {
         if (it['isCompleted'] == true) {
           completedTasks++;
-        } else if (pendingItems.length < 2) {
+        } else if (pendingItems.length < 3) {
           pendingItems.add(it);
         }
       }
@@ -1635,23 +1727,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           // Sample Upcoming Tasks
           if (pendingItems.isNotEmpty) ...[
             for (final it in pendingItems)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF132235) : const Color(0xFFF3ECE0),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF283B50) : const Color(0xFFE3D9C9),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.radio_button_unchecked_rounded,
-                      size: 14,
-                      color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                      size: 15,
+                      color: Color(0xFFC5A85E),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        (it['task'] ?? it['title'] ?? 'Title search & Encumbrance check').toString(),
+                        (it['task'] ?? it['title'] ?? loc.translate('home.defaultTaskTitle')).toString(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 12,
+                          fontWeight: FontWeight.w500,
                           color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                         ),
                       ),
@@ -1661,14 +1762,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               ),
           ] else ...[
             Text(
-              totalTasks > 0 ? 'All due diligence verification tasks completed' : 'No active transaction checklists',
+              totalTasks > 0 ? loc.translate('home.allTasksDone') : loc.translate('home.noActiveChecklists'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
               ),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Action Button
           Align(
@@ -1779,53 +1880,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           const SizedBox(height: 16),
 
           for (int i = 0; i < activities.length; i++) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: activities[i]['color'] as Color,
-                        shape: BoxShape.circle,
-                      ),
+            Container(
+              margin: EdgeInsets.only(bottom: i < activities.length - 1 ? 8 : 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF132235) : const Color(0xFFF3ECE0),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF283B50) : const Color(0xFFE3D9C9),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: (activities[i]['color'] as Color).withValues(alpha: isDark ? 0.15 : 0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    if (i < activities.length - 1)
-                      Container(
-                        width: 1.2,
-                        height: 24,
-                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        activities[i]['title'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                        ),
-                      ),
-                      Text(
-                        activities[i]['time'] as String,
-                        style: GoogleFonts.inter(
-                          fontSize: 10.5,
-                          color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                        ),
-                      ),
-                    ],
+                    child: Icon(
+                      activities[i]['icon'] as IconData,
+                      size: 16,
+                      color: activities[i]['color'] as Color,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          activities[i]['title'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          activities[i]['time'] as String,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -1947,52 +2054,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             )
           else ...[
             for (int i = 0; i < news.take(2).length; i++) ...[
-              InkWell(
-                onTap: () async {
-                  final link = (news[i]['link'] ?? '').toString();
-                  if (link.isNotEmpty) {
-                    final uri = Uri.parse(link);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  }
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              (news[i]['title'] ?? 'Legal Notice').toString(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12.5,
-                              ),
+              Container(
+                margin: EdgeInsets.only(bottom: i < news.take(2).length - 1 ? 8 : 0),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF132235) : const Color(0xFFF3ECE0),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF283B50) : const Color(0xFFE3D9C9),
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      final link = (news[i]['link'] ?? '').toString();
+                      if (link.isNotEmpty) {
+                        final uri = Uri.parse(link);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  (news[i]['title'] ?? 'Legal Notice').toString(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${news[i]['source'] ?? 'Legal News'} • ${_formatRelativeTime(news[i]['pubDate'])}',
+                                  style: GoogleFonts.inter(
+                                    color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '${news[i]['source'] ?? 'Legal News'} • ${_formatRelativeTime(news[i]['pubDate'])}',
-                              style: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.open_in_new_rounded,
+                            size: 14,
+                            color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF63748A),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.open_in_new_rounded,
-                        size: 14,
-                        color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF63748A),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -2465,24 +2586,23 @@ class _WorkspaceMetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final item = data;
 
-    return SizedBox(
-      height: 114,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+    return Container(
+      constraints: const BoxConstraints(minHeight: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2501,6 +2621,7 @@ class _WorkspaceMetricCard extends StatelessWidget {
                 ),
                 child: Icon(item.icon, color: item.accentColor, size: 16),
               ),
+              const SizedBox(width: 8),
               Text(
                 item.value,
                 style: GoogleFonts.inter(
@@ -2513,6 +2634,7 @@ class _WorkspaceMetricCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -2544,7 +2666,7 @@ class _WorkspaceMetricCard extends StatelessWidget {
           ),
         ],
       ),
-    ));
+    );
   }
 }
 

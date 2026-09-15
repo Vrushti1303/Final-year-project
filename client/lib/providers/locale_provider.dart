@@ -173,8 +173,27 @@ final Map<String, Map<String, String>> _translations = {
   'home.activeChecklists': {'en': 'Active Checklists', 'hi': 'सक्रिय चेकलिस्ट'},
   'home.systemOnline': {'en': 'Legal Engine Online', 'hi': 'कानूनी इंजन सक्रिय'},
   'home.primaryScanSpotlight': {'en': 'INSTANT AI ASSESSMENT', 'hi': 'त्वरित एआई मूल्यांकन'},
-  'home.primaryScanCta': {'en': 'Start New Scan', 'hi': 'नया स्कैन शुरू करें'},
-
+  'home.heroTag': {
+    'en': 'YOUR PROPERTY • YOUR RIGHTS • YOUR CONFIDENCE',
+    'hi': 'आपकी संपत्ति • आपके अधिकार • आपका विश्वास',
+  },
+  'home.heroSub': {
+    'en': 'Review your agreements, check RERA risks, and make informed property decisions with AI built for Indian real estate.',
+    'hi': 'अपने समझौतों की समीक्षा करें, रेरा जोखिमों की जांच करें और भारतीय रियल एस्टेट के लिए बने एआई के साथ सूचित निर्णय लें।',
+  },
+  'home.scanNewDocument': {'en': 'Scan Document', 'hi': 'दस्तावेज़ स्कैन करें'},
+  'home.allTasksDone': {'en': 'All due diligence verification tasks completed', 'hi': 'सभी उचित सावधानी सत्यापन कार्य पूर्ण हो गए'},
+  'home.noActiveChecklists': {'en': 'No active transaction checklists', 'hi': 'कोई सक्रिय लेनदेन चेकलिस्ट नहीं है'},
+  'home.defaultChecklistTitle': {'en': 'Property Purchase Diligence', 'hi': 'संपत्ति खरीद उचित सावधानी'},
+  'home.defaultTaskTitle': {'en': 'Title search & Encumbrance check', 'hi': 'टाइटल खोज और भार जांच'},
+  'home.clausesEvaluated': {
+    'en': '{count} clauses evaluated across tenancy & title compliance',
+    'hi': 'किराया और शीर्षक अनुपालन में {count} खंडों का मूल्यांकन किया गया',
+  },
+  'home.assessmentComplete': {
+    'en': 'AI clause extraction and legal risk assessment complete',
+    'hi': 'एआई खंड निष्कर्षण और कानूनी जोखिम मूल्यांकन पूर्ण',
+  },
   'home.workspaceSubtitle': {'en': 'Your property legal workspace', 'hi': 'आपका संपत्ति कानूनी कार्यक्षेत्र'},
   'home.latestAnalysisReview': {'en': 'Latest Document Analysis', 'hi': 'नवीनतम दस्तावेज़ विश्लेषण'},
   'home.latestAnalysisSub': {'en': 'Real-time risk assessment & clause audit', 'hi': 'वास्तविक समय जोखिम मूल्यांकन और खंड ऑडिट'},
