@@ -172,8 +172,42 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Recent Documents'), findsOneWidget);
-    expect(find.text('Latest Legal Updates'), findsOneWidget);
+    expect(find.text('OVERVIEW'), findsOneWidget);
+    expect(find.text('WORKSPACE'), findsOneWidget);
+    expect(find.text('LEGAL TOOLS'), findsOneWidget);
+    expect(find.text('LEGAL INFORMATION'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Documents'), findsOneWidget);
+    expect(find.text('Risk Analysis'), findsOneWidget);
+    expect(find.text('Checklists'), findsOneWidget);
+    expect(find.text('Legal AI'), findsOneWidget);
+    expect(find.text('Stamp Duty Calculator'), findsOneWidget);
+    expect(find.text('RERA & Compliance'), findsOneWidget);
+    expect(find.text('Latest Document Analysis'), findsOneWidget);
+    expect(find.text('Legal Risk Breakdown'), findsOneWidget);
+    expect(find.text('Due Diligence Checklist'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen builds on Mobile (375x812) without overflow', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Latest Document Analysis'), findsOneWidget);
+    expect(find.text('Legal Risk Breakdown'), findsOneWidget);
+    expect(find.text('Due Diligence Checklist'), findsOneWidget);
   });
 
   testWidgets('ChatScreen builds without overflowing on desktop/mobile', (WidgetTester tester) async {
@@ -192,7 +226,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ChatScreen), findsOneWidget);
-    expect(find.text('Legal AI Assistant'), findsOneWidget);
+    expect(find.textContaining('LEGAL AI ASSISTANT'), findsWidgets);
   });
 
   testWidgets('AnalysisScreen renders with summary and Export PDF button', (WidgetTester tester) async {
@@ -240,7 +274,7 @@ void main() {
     );
 
     await tester.pump();
-    expect(find.text('Legal AI Assistant'), findsOneWidget);
+    expect(find.textContaining('LEGAL AI ASSISTANT'), findsWidgets);
     expect(find.byType(TextField), findsWidgets);
   });
 

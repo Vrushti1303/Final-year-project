@@ -21,6 +21,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -41,18 +43,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     // Entrance animations
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 600),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    // Continuous ambient breathing animation
+    // Ambient breathing animation
     _ambientController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 5500),
@@ -168,7 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
     final String greetingName = (user?.fullName != null && user!.fullName.trim().isNotEmpty)
         ? user.fullName.trim().split(' ').first
-        : 'Jiya';
+        : 'User';
 
     final bgGradientColors = isDark
         ? const [
@@ -183,193 +185,537 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ];
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: !isDesktop ? _buildSidebarDrawer(context, isDark, user) : null,
       backgroundColor: isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE),
-      body: MouseRegion(
-        onHover: (event) {
-          if (isDesktop) {
-            setState(() => _mousePos = event.position);
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: bgGradientColors,
-            ),
-          ),
-          child: Stack(
-            children: [
-              // ==========================================
-              // 6. ENHANCED CINEMATIC AMBIENT LIGHTING
-              // ==========================================
-              AnimatedBuilder(
-                animation: _ambientController,
-                builder: (context, child) {
-                  final pulse = _pulseAnimation.value;
-                  return Stack(
-                    children: [
-                      // Orb 1: Top-Left Cyan Ambient Aurora
-                      Positioned(
-                        top: -140 + (25 * _ambientController.value),
-                        left: -120 + (20 * _ambientController.value),
-                        child: IgnorePointer(
-                          child: Container(
-                            width: 580 * pulse,
-                            height: 580 * pulse,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.12 : 0.07),
-                                  const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.06 : 0.03),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ==========================================
+          // 1. PRIMARY PERSISTENT SIDEBAR NAVIGATION
+          // ==========================================
+          if (isDesktop)
+            _buildDesktopSidebar(context, isDark, user),
 
-                      // Orb 2: Center/Bottom-Right Gold Ambient Aurora
-                      Positioned(
-                        bottom: 80 + (30 * (1.0 - _ambientController.value)),
-                        right: -140,
-                        child: IgnorePointer(
-                          child: Container(
-                            width: 620 * (2.0 - pulse),
-                            height: 620 * (2.0 - pulse),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.08 : 0.05),
-                                  const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.04 : 0.02),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Orb 3: Mouse-responsive Interactive Spotlight (Desktop)
-                      if (isDesktop)
-                        Positioned(
-                          left: _mousePos.dx - 350,
-                          top: _mousePos.dy - 350,
-                          child: IgnorePointer(
-                            child: Container(
-                              width: 700,
-                              height: 700,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.055 : 0.035),
-                                    const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.025 : 0.015),
-                                    Colors.transparent,
-                                  ],
-                                  radius: 0.85,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-
-              SafeArea(
-                child: Column(
+          // ==========================================
+          // 2. INTELLIGENT WORKSPACE / DASHBOARD
+          // ==========================================
+          Expanded(
+            child: MouseRegion(
+              onHover: (event) {
+                if (isDesktop) {
+                  setState(() => _mousePos = event.position);
+                }
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: bgGradientColors,
+                  ),
+                ),
+                child: Stack(
                   children: [
-                    // Sticky Top Navigation
-                    _buildTopNav(context, isDark, isDesktop),
-
-                    // Main Scrollable Dashboard Content
-                    Expanded(
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: SlideTransition(
-                          position: _slideAnimation,
-                          child: SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isDesktop ? 32.0 : 18.0,
-                              vertical: 24.0,
-                            ),
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 1200),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    // 1. Editorial Welcome Hero Banner (Glassmorphic)
-                                    _buildHeroSection(context, isDark, isDesktop, greetingName),
-                                    const SizedBox(height: 32),
-
-                                    // 2. Quick Actions 4-Module Suite (Shimmering Glass Cards)
-                                    _buildQuickActionsSection(context, isDark, isDesktop),
-                                    const SizedBox(height: 36),
-
-                                    // 3. 2-Column Content Grid: Recent Documents & Legal Updates
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        if (constraints.maxWidth >= 900) {
-                                          return IntrinsicHeight(
-                                            child: Row(
-                                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                                              children: [
-                                                Expanded(
-                                                  child: _buildRecentDocumentsSection(context, isDark),
-                                                ),
-                                                const SizedBox(width: 24),
-                                                Expanded(
-                                                  child: _buildLegalNewsSection(context, isDark),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        } else {
-                                          return Column(
-                                            children: [
-                                              _buildRecentDocumentsSection(context, isDark),
-                                              const SizedBox(height: 28),
-                                              _buildLegalNewsSection(context, isDark),
-                                            ],
-                                          );
-                                        }
-                                      },
+                    // Subtle Ambient Aurora
+                    AnimatedBuilder(
+                      animation: _ambientController,
+                      builder: (context, child) {
+                        final pulse = _pulseAnimation.value;
+                        return Stack(
+                          children: [
+                            Positioned(
+                              top: -120 + (20 * _ambientController.value),
+                              left: -100 + (15 * _ambientController.value),
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 520 * pulse,
+                                  height: 520 * pulse,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.10 : 0.06),
+                                        const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.05 : 0.02),
+                                        Colors.transparent,
+                                      ],
                                     ),
-                                    const SizedBox(height: 36),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 60 + (25 * (1.0 - _ambientController.value)),
+                              right: -120,
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 560 * (2.0 - pulse),
+                                  height: 560 * (2.0 - pulse),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.07 : 0.04),
+                                        const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.03 : 0.015),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (isDesktop)
+                              Positioned(
+                                left: _mousePos.dx - 300,
+                                top: _mousePos.dy - 300,
+                                child: IgnorePointer(
+                                  child: Container(
+                                    width: 600,
+                                    height: 600,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.045 : 0.025),
+                                          Colors.transparent,
+                                        ],
+                                        radius: 0.85,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
 
-                                    // 4. Prominent RERA Advisory Alert Banner
-                                    _buildReraAlertCard(context, isDark, isDesktop),
-                                    const SizedBox(height: 90), // Breathing room for Floating AI Button
-                                  ],
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          // Top Navigation Bar (Mobile / Drawer only)
+                          if (!isDesktop) _buildTopNav(context, isDark, isDesktop),
+
+                          // Scrollable Workspace Content
+                          Expanded(
+                            child: FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: SlideTransition(
+                                position: _slideAnimation,
+                                child: SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isDesktop ? 32.0 : 18.0,
+                                    vertical: 24.0,
+                                  ),
+                                  child: Center(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 1200),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // A. Workspace Greeting & Hero
+                                          _buildHeaderGreeting(context, isDark, isDesktop, greetingName),
+                                          const SizedBox(height: 24),
+
+                                          // B. High-Level Real-Data Summary Metrics Row
+                                          _buildSummaryMetricsRow(context, isDark, isDesktop),
+                                          const SizedBox(height: 28),
+
+                                          // C. Main Workspace Feature: Latest Document Analysis Review
+                                          _buildLatestDocumentReview(context, isDark, isDesktop),
+                                          const SizedBox(height: 28),
+
+                                          // D & E & F. 2-Column Intelligence Grid
+                                          LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              if (constraints.maxWidth >= 900) {
+                                                return IntrinsicHeight(
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                    children: [
+                                                      Expanded(
+                                                        flex: 6,
+                                                        child: Column(
+                                                          children: [
+                                                            _buildRiskBreakdownCard(context, isDark),
+                                                            const SizedBox(height: 24),
+                                                            _buildChecklistProgressCard(context, isDark),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 24),
+                                                      Expanded(
+                                                        flex: 5,
+                                                        child: Column(
+                                                          children: [
+                                                            _buildRecentActivityCard(context, isDark),
+                                                            const SizedBox(height: 24),
+                                                            _buildLegalUpdatesCard(context, isDark),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              } else {
+                                                return Column(
+                                                  children: [
+                                                    _buildRiskBreakdownCard(context, isDark),
+                                                    const SizedBox(height: 24),
+                                                    _buildChecklistProgressCard(context, isDark),
+                                                    const SizedBox(height: 24),
+                                                    _buildRecentActivityCard(context, isDark),
+                                                    const SizedBox(height: 24),
+                                                    _buildLegalUpdatesCard(context, isDark),
+                                                  ],
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(height: 28),
+
+                                          // G. RERA Statutory Advisory Notice
+                                          _buildReraAwarenessCard(context, isDark, isDesktop),
+                                          const SizedBox(height: 40),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Floating AI Assistant Pill Button (Bottom-Right)
-              Positioned(
-                right: isDesktop ? 32 : 18,
-                bottom: 24,
-                child: _buildFloatingAiButton(context, isDark),
+  // ==========================================
+  // DESKTOP SIDEBAR WIDGET
+  // ==========================================
+  Widget _buildDesktopSidebar(BuildContext context, bool isDark, dynamic user) {
+    return Container(
+      width: 240,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF13253A) : const Color(0xFFF7F1D0),
+        border: Border(
+          right: BorderSide(
+            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: _buildSidebarContent(context, isDark, user, isDrawer: false),
+      ),
+    );
+  }
+
+  // ==========================================
+  // MOBILE SIDEBAR DRAWER
+  // ==========================================
+  Widget _buildSidebarDrawer(BuildContext context, bool isDark, dynamic user) {
+    return Drawer(
+      backgroundColor: isDark ? const Color(0xFF13253A) : const Color(0xFFF7F1D0),
+      child: SafeArea(
+        child: _buildSidebarContent(context, isDark, user, isDrawer: true),
+      ),
+    );
+  }
+
+  // ==========================================
+  // SHARED SIDEBAR CONTENT (PRIMARY NAVIGATION)
+  // ==========================================
+  Widget _buildSidebarContent(BuildContext context, bool isDark, dynamic user, {required bool isDrawer}) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
+
+    final String userName = (user?.fullName != null && user!.fullName.trim().isNotEmpty)
+        ? user.fullName.trim()
+        : 'User';
+    final String initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Top Brand Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF91ADCD), Color(0xFF708CAE)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF91ADCD).withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.gavel_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'LawBuddy',
+                      style: GoogleFonts.inter(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    Text(
+                      'REAL ESTATE AI TECH',
+                      style: GoogleFonts.inter(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF91ADCD),
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
+
+        Divider(
+          color: isDark ? const Color(0xFF334356).withValues(alpha: 0.6) : const Color(0xFFE4DDD0),
+          height: 1,
+        ),
+
+        // Navigation Menu List
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            children: [
+              // SECTION: OVERVIEW
+              _buildSidebarSectionLabel(loc.translate('sidebar.overview'), isDark),
+              _SidebarNavItem(
+                icon: Icons.dashboard_rounded,
+                label: loc.translate('sidebar.dashboard'),
+                isActive: true,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // SECTION: WORKSPACE
+              _buildSidebarSectionLabel(loc.translate('sidebar.workspace'), isDark),
+              _SidebarNavItem(
+                icon: Icons.folder_open_rounded,
+                label: loc.translate('sidebar.documents'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _navigateTo(const RecentDocumentsScreen());
+                },
+              ),
+              _SidebarNavItem(
+                icon: Icons.document_scanner_rounded,
+                label: loc.translate('sidebar.riskAnalysis'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _navigateTo(const ScanScreen());
+                },
+              ),
+              _SidebarNavItem(
+                icon: Icons.checklist_rounded,
+                label: loc.translate('sidebar.checklists'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _navigateTo(const ChecklistsListScreen());
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // SECTION: LEGAL TOOLS
+              _buildSidebarSectionLabel(loc.translate('sidebar.legalTools'), isDark),
+              _SidebarNavItem(
+                icon: Icons.auto_awesome_rounded,
+                label: loc.translate('sidebar.legalAi'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _navigateTo(const ChatScreen());
+                },
+              ),
+              _SidebarNavItem(
+                icon: Icons.calculate_rounded,
+                label: loc.translate('sidebar.stampDuty'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _navigateTo(const StampDutyCalculatorScreen());
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // SECTION: LEGAL INFORMATION
+              _buildSidebarSectionLabel(loc.translate('sidebar.legalInfo'), isDark),
+              _SidebarNavItem(
+                icon: Icons.shield_outlined,
+                label: loc.translate('sidebar.reraCompliance'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  _openReraDetailsModal();
+                },
+              ),
+            ],
+          ),
+        ),
+
+        Divider(
+          color: isDark ? const Color(0xFF334356).withValues(alpha: 0.6) : const Color(0xFFE4DDD0),
+          height: 1,
+        ),
+
+        // Bottom Settings & Profile Area
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Column(
+            children: [
+              _SidebarNavItem(
+                icon: Icons.settings_outlined,
+                label: loc.translate('sidebar.settings'),
+                isActive: false,
+                isDark: isDark,
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  showSettingsDialog(context, ref);
+                },
+              ),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () {
+                  if (isDrawer) Navigator.pop(context);
+                  showProfileDialog(context, ref);
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: const Color(0xFF91ADCD).withValues(alpha: 0.2),
+                        child: Text(
+                          initial,
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              userName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              loc.translate('sidebar.profile'),
+                              style: GoogleFonts.inter(
+                                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSidebarSectionLabel(String text, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          color: isDark ? const Color(0xFF91ADCD).withValues(alpha: 0.75) : const Color(0xFF63748A),
+          letterSpacing: 1.1,
+        ),
       ),
     );
+  }
+
+  void _openReraDetailsModal() {
+    final reraAlert = _legalNews.firstWhere(
+      (n) => (n['isWarning'] == true || (n['title'] ?? '').toString().toLowerCase().contains('rera')),
+      orElse: () => null,
+    );
+
+    final String alertTitle = reraAlert != null
+        ? (reraAlert['title'] ?? 'RERA: The regulator that was supposed to protect homebuyers — but has it become part of the problem?')
+        : 'RERA: The regulator that was supposed to protect homebuyers — but has it become part of the problem?';
+
+    final String alertDesc = reraAlert != null
+        ? 'Regulatory update. Mandatory adherence required for real estate transactions, promoter disclosures, and escrow accounting.'
+        : 'Regulatory update. Mandatory adherence required for real estate transactions, promoter disclosures, and escrow accounting.';
+
+    final String alertLink = reraAlert != null ? (reraAlert['link'] ?? '') : '';
+
+    _handleReraDetails(context, alertLink, alertTitle, alertDesc);
   }
 
   // ==========================================
@@ -377,10 +723,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   // ==========================================
   Widget _buildTopNav(BuildContext context, bool isDark, bool isDesktop) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 32 : 18,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: (isDark ? const Color(0xFF162B43) : const Color(0xFFFBF8EE)).withValues(alpha: 0.94),
         border: Border(
@@ -389,138 +732,76 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             width: 1,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 14,
-            offset: const Offset(0, 3),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+              Icons.menu_rounded,
+              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+            ),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            tooltip: 'Menu',
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'LawBuddy',
+            style: GoogleFonts.inter(
+              fontSize: 16.5,
+              fontWeight: FontWeight.w800,
+              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+              letterSpacing: -0.3,
+            ),
           ),
         ],
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Brand Logo + Title
-              InkWell(
-                onTap: () {},
-                borderRadius: BorderRadius.circular(10),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF91ADCD), Color(0xFF708CAE)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF91ADCD).withValues(alpha: 0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.gavel_rounded,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'LawBuddy',
-                          style: GoogleFonts.inter(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Text(
-                          'REAL ESTATE AI TECH',
-                          style: GoogleFonts.inter(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF91ADCD),
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Right Nav: User Profile Menu & Actions
-              const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  UserProfileButton(),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
   // ==========================================
-  // 1. EDITORIAL WELCOME HERO BANNER (FROSTED GLASS)
+  // A. WORKSPACE GREETING & HERO
   // ==========================================
-  Widget _buildHeroSection(BuildContext context, bool isDark, bool isDesktop, String userName) {
+  Widget _buildHeaderGreeting(BuildContext context, bool isDark, bool isDesktop, String userName) {
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  const Color(0xFF38BDF8).withValues(alpha: 0.25),
-                  const Color(0xFFC5A85E).withValues(alpha: 0.15),
-                  const Color(0xFF334356).withValues(alpha: 0.3),
+                  const Color(0xFF38BDF8).withValues(alpha: 0.22),
+                  const Color(0xFFC5A85E).withValues(alpha: 0.14),
+                  const Color(0xFF334356).withValues(alpha: 0.28),
                 ]
               : [
                   const Color(0xFFE4DDD0),
-                  const Color(0xFFD4AF37).withValues(alpha: 0.25),
+                  const Color(0xFFD4AF37).withValues(alpha: 0.2),
                   const Color(0xFFE4DDD0),
                 ],
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? const Color(0xFF0F172A) : const Color(0xFF91ADCD)).withValues(alpha: isDark ? 0.45 : 0.1),
-            blurRadius: 28,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(1.2), // Gradient border container
+      padding: const EdgeInsets.all(1.2),
       child: Container(
         decoration: BoxDecoration(
           color: isDark
               ? const Color(0xFF1B2F48).withValues(alpha: 0.94)
               : const Color(0xFFFBF8EE).withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(20.8),
+          borderRadius: BorderRadius.circular(18.8),
         ),
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 32.0 : 20.0,
-          vertical: isDesktop ? 26.0 : 20.0,
+          horizontal: isDesktop ? 28.0 : 18.0,
+          vertical: isDesktop ? 22.0 : 18.0,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -536,7 +817,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     children: [
                       // Eyebrow Tag
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFF91ADCD).withValues(alpha: isDark ? 0.16 : 0.12),
                           borderRadius: BorderRadius.circular(20),
@@ -548,52 +829,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 6,
-                              height: 6,
+                              width: 5.5,
+                              height: 5.5,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (isDark ? const Color(0xFFC5A85E) : const Color(0xFF92764B)).withValues(alpha: 0.6),
-                                    blurRadius: 6,
-                                  ),
-                                ],
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              'YOUR PROPERTY • YOUR RIGHTS • YOUR CONFIDENCE',
-                              style: GoogleFonts.inter(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? const Color(0xFFC5A85E) : const Color(0xFF244A78),
-                                letterSpacing: 0.8,
+                            Flexible(
+                              child: Text(
+                                'YOUR PROPERTY • YOUR RIGHTS • YOUR CONFIDENCE',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFFC5A85E) : const Color(0xFF244A78),
+                                  letterSpacing: 0.8,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
                       // Greeting Headline
                       Text(
                         loc.translate('home.greeting', {'greeting': _getGreeting(), 'name': userName}),
                         style: GoogleFonts.inter(
-                          fontSize: isDesktop ? 26 : 21,
+                          fontSize: isDesktop ? 24 : 19,
                           fontWeight: FontWeight.w800,
                           color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                          letterSpacing: -0.5,
+                          letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
-                      // Supporting Narrative
+                      // Workspace Subtitle
                       Text(
                         'Review your agreements, check RERA risks, and make informed property decisions with AI built for Indian real estate.',
                         style: GoogleFonts.inter(
-                          fontSize: isDesktop ? 13.5 : 12.5,
-                          height: 1.45,
+                          fontSize: isDesktop ? 13 : 12,
+                          height: 1.4,
                           color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
                         ),
                       ),
@@ -604,8 +883,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 if (showIllustration) ...[
                   const SizedBox(width: 24),
                   SizedBox(
-                    width: 210,
-                    height: 90,
+                    width: 190,
+                    height: 80,
                     child: CustomPaint(
                       painter: _LegalPropertyIllustrationPainter(
                         accentBlue: const Color(0xFF91ADCD),
@@ -624,14 +903,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   // ==========================================
-  // 2. QUICK ACTIONS SECTION (4 FEATURE MODULES)
+  // B. SUMMARY METRICS ROW (REAL DATA ONLY)
   // ==========================================
-  Widget _buildQuickActionsSection(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildSummaryMetricsRow(BuildContext context, bool isDark, bool isDesktop) {
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
 
-    // Compute real dynamic checklist metrics from MongoDB data
-    int checklistCount = _checklists.length;
+    final int analyzedDocsCount = _recentDocs
+        .where((d) => d.analysisStatus == 'completed' || d.analysis.isNotEmpty)
+        .length;
+
+    int highRiskFlags = 0;
+    for (final doc in _recentDocs) {
+      if (doc.analysis.isNotEmpty) {
+        for (final item in doc.analysis) {
+          if (item is Map) {
+            final rLevel = (item['riskLevel'] ?? item['category'] ?? '').toString().toLowerCase();
+            if (rLevel.contains('high') || rLevel.contains('red')) {
+              highRiskFlags++;
+            }
+          }
+        }
+      } else if (doc.riskLabel.toLowerCase().contains('high')) {
+        highRiskFlags++;
+      }
+    }
+
+    final int checklistCount = _checklists.length;
+
     int totalTasks = 0;
     int completedTasks = 0;
     for (final cl in _checklists) {
@@ -639,166 +938,114 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       totalTasks += items.length;
       completedTasks += items.where((it) => it['isCompleted'] == true).length;
     }
-    double checklistProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
-
-    final String checklistBadge = checklistCount == 0
-        ? loc.translate('home.activeChecklistsZero')
-        : loc.translate('home.activeChecklistsBadge', {
-            'count': checklistCount.toString(),
-            'unit': loc.translate(checklistCount == 1 ? 'home.checklistUnitSingular' : 'home.checklistUnitPlural'),
-          });
-
-    final String checklistDesc = totalTasks == 0
-        ? (checklistCount == 0 ? loc.translate('home.checklistZeroTasks') : loc.translate('home.checklistZeroCompleted'))
-        : loc.translate('home.checklistTasksProgress', {
-            'completed': completedTasks.toString(),
-            'total': totalTasks.toString(),
-            'count': checklistCount.toString(),
-            'unit': loc.translate(checklistCount == 1 ? 'home.guideUnitSingular' : 'home.guideUnitPlural'),
-          });
-
-    final String exploreBtn = loc.translate('common.explore').replaceAll('→', '').trim();
+    final double checklistProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
 
     final cards = [
-      _QuickActionItem(
-        category: 'DOCUMENT SCAN',
-        title: loc.translate('home.scanAgreement'),
-        description: loc.translate('home.scanAgreementDesc'),
-        ctaText: exploreBtn.isNotEmpty ? exploreBtn : 'Explore',
-        icon: Icons.document_scanner_rounded,
-        accentColor: const Color(0xFF38BDF8), // Cyan / Blue Accent
-        onTap: () => _navigateTo(const ScanScreen()),
+      _WorkspaceMetricData(
+        icon: Icons.description_outlined,
+        title: loc.translate('home.totalScannedDocs'),
+        value: analyzedDocsCount.toString(),
+        subtitle: loc.translate('home.totalScannedDocsSub'),
+        accentColor: const Color(0xFF38BDF8),
       ),
-      _QuickActionItem(
-        category: '24/7 AI ASSISTANT',
-        title: loc.translate('home.legalChatbot'),
-        description: loc.translate('home.legalChatbotDesc'),
-        ctaText: exploreBtn.isNotEmpty ? exploreBtn : 'Explore',
-        icon: Icons.forum_outlined,
-        accentColor: const Color(0xFFC5A85E), // Gold Accent
-        onTap: () => _navigateTo(const ChatScreen()),
+      _WorkspaceMetricData(
+        icon: highRiskFlags > 0 ? Icons.warning_amber_rounded : Icons.shield_outlined,
+        title: loc.translate('home.highRiskCount'),
+        value: highRiskFlags.toString(),
+        subtitle: highRiskFlags > 0
+            ? '$highRiskFlags ${loc.translate('home.highRiskCountSub')}'
+            : loc.translate('home.noHighRisks'),
+        accentColor: highRiskFlags > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
       ),
-      _QuickActionItem(
-        category: 'DUE DILIGENCE',
-        title: loc.translate('home.propertyChecklist'),
-        description: checklistDesc,
-        ctaText: exploreBtn.isNotEmpty ? exploreBtn : 'Explore',
+      _WorkspaceMetricData(
         icon: Icons.checklist_rounded,
-        accentColor: const Color(0xFFC5A85E), // Gold Accent (matching AI Chatbot)
-        badgeText: checklistBadge,
-        showProgress: true,
-        progress: checklistProgress,
-        onTap: () => _navigateTo(const ChecklistsListScreen()),
+        title: loc.translate('home.dueDiligenceProgress'),
+        value: '${(checklistProgress * 100).toInt()}%',
+        subtitle: totalTasks > 0 ? '$completedTasks of $totalTasks tasks done' : loc.translate('home.checklistZeroTasks'),
+        accentColor: const Color(0xFFC5A85E),
       ),
-      _QuickActionItem(
-        category: 'STATE-WISE TAXES',
-        title: loc.translate('home.stampDutyCalculator'),
-        description: loc.translate('home.stampDutyCalculatorDesc'),
-        ctaText: exploreBtn.isNotEmpty ? exploreBtn : 'Explore',
-        icon: Icons.calculate_rounded,
-        accentColor: const Color(0xFF38BDF8), // Blue Accent (matching Scan Agreement)
-        onTap: () => _navigateTo(const StampDutyCalculatorScreen()),
+      _WorkspaceMetricData(
+        icon: Icons.assignment_outlined,
+        title: loc.translate('home.activeChecklists'),
+        value: checklistCount.toString(),
+        subtitle: checklistCount == 0
+            ? loc.translate('home.activeChecklistsZero')
+            : loc.translate('home.activeChecklistsBadge', {
+                'count': checklistCount.toString(),
+                'unit': loc.translate(checklistCount == 1 ? 'home.checklistUnitSingular' : 'home.checklistUnitPlural'),
+              }),
+        accentColor: const Color(0xFF91ADCD),
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'ESSENTIAL LEGAL TOOLS',
-                  style: GoogleFonts.inter(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF91ADCD),
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  loc.translate('home.quickActions'),
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                    letterSpacing: -0.4,
-                  ),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 860) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (int i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: 14),
+                Expanded(child: _WorkspaceMetricCard(data: cards[i], isDark: isDark)),
               ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isMultiCol = constraints.maxWidth >= 720;
-
-            if (isMultiCol) {
-              return Column(
+            ],
+          );
+        } else if (constraints.maxWidth >= 520) {
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _QuickActionCard(item: cards[0], isDark: isDark)),
-                        const SizedBox(width: 18),
-                        Expanded(child: _QuickActionCard(item: cards[1], isDark: isDark)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _QuickActionCard(item: cards[2], isDark: isDark)),
-                        const SizedBox(width: 18),
-                        Expanded(child: _QuickActionCard(item: cards[3], isDark: isDark)),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _WorkspaceMetricCard(data: cards[0], isDark: isDark)),
+                  const SizedBox(width: 14),
+                  Expanded(child: _WorkspaceMetricCard(data: cards[1], isDark: isDark)),
                 ],
-              );
-            } else {
-              return Column(
-                children: cards.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _QuickActionCard(item: item, isDark: isDark),
-                  );
-                }).toList(),
-              );
-            }
-          },
-        ),
-      ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: _WorkspaceMetricCard(data: cards[2], isDark: isDark)),
+                  const SizedBox(width: 14),
+                  Expanded(child: _WorkspaceMetricCard(data: cards[3], isDark: isDark)),
+                ],
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: cards
+                .map((c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _WorkspaceMetricCard(data: c, isDark: isDark),
+                    ))
+                .toList(),
+          );
+        }
+      },
     );
   }
 
   // ==========================================
-  // 3. RECENT DOCUMENTS SECTION (SHIMMERING GLASS)
+  // C. MAIN WORKSPACE: LATEST DOCUMENT REVIEW
   // ==========================================
-  Widget _buildRecentDocumentsSection(BuildContext context, bool isDark) {
-    final docs = _recentDocs;
+  Widget _buildLatestDocumentReview(BuildContext context, bool isDark, bool isDesktop) {
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
 
+    final bool hasDocs = _recentDocs.isNotEmpty;
+    final _RecentDocItem? latestDoc = hasDocs ? _recentDocs.first : null;
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  const Color(0xFF38BDF8).withValues(alpha: 0.2),
-                  const Color(0xFF334356).withValues(alpha: 0.4),
+                  const Color(0xFF38BDF8).withValues(alpha: 0.22),
+                  const Color(0xFF334356).withValues(alpha: 0.35),
                   const Color(0xFF16263B).withValues(alpha: 0.2),
                 ]
               : [
@@ -808,7 +1055,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -818,9 +1065,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       child: Container(
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF1B2F48).withValues(alpha: 0.94)
-              : const Color(0xFFFBF8EE).withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(20.8),
+              ? const Color(0xFF1B2F48).withValues(alpha: 0.95)
+              : const Color(0xFFFBF8EE).withValues(alpha: 0.97),
+          borderRadius: BorderRadius.circular(18.8),
         ),
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -828,7 +1075,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           children: [
             // Section Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Row(
@@ -836,68 +1082,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF91ADCD).withValues(alpha: 0.18),
+                          color: const Color(0xFF38BDF8).withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFF91ADCD).withValues(alpha: 0.3),
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
                           ),
                         ),
-                        child: const Icon(
-                          Icons.folder_open_rounded,
-                          size: 18,
-                          color: Color(0xFF91ADCD),
-                        ),
+                        child: const Icon(Icons.analytics_outlined, color: Color(0xFF38BDF8), size: 18),
                       ),
                       const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          loc.translate('home.recentDocuments'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              loc.translate('home.latestAnalysisReview'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            Text(
+                              loc.translate('home.latestAnalysisSub'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasDocs) ...[
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => _navigateTo(const RecentDocumentsScreen()),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      foregroundColor: const Color(0xFF91ADCD),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          loc.translate('home.viewAll', {'count': _recentDocs.length.toString()}),
                           style: GoogleFonts.inter(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                            letterSpacing: -0.3,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF244A78),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () => _navigateTo(const RecentDocumentsScreen()),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: const Color(0xFF91ADCD),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        loc.translate('home.viewAll', {'count': _recentDocs.length.toString()}),
-                        style: GoogleFonts.inter(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 13,
                           color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF244A78),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 13,
-                        color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF244A78),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
+            // Content: Active Latest Document vs Empty State
             if (_isLoadingDocs && _recentDocs.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(32.0),
@@ -908,9 +1166,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   ),
                 ),
               )
-            else if (docs.isEmpty)
+            else if (!hasDocs || latestDoc == null)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 12.0),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -943,62 +1201,147 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => _navigateTo(const ScanScreen()),
-                        icon: const Icon(Icons.document_scanner_rounded, size: 14),
-                        label: Text(
-                          loc.translate('home.scanOrUploadAgreementBtn'),
-                          style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? const Color(0xFF5F7895) : const Color(0xFF244A78),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ],
                   ),
                 ),
               )
-            else ...[
-              for (int i = 0; i < docs.take(3).length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    color: isDark ? const Color(0xFF334356).withValues(alpha: 0.6) : const Color(0xFFE4DDD0),
-                    height: 1,
+            else
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF16273C) : const Color(0xFFF6F1E3),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334356).withValues(alpha: 0.8) : const Color(0xFFE4DDD0),
                   ),
-                _HoverDocumentRow(
-                  doc: docs[i],
-                  isDark: isDark,
-                  onTap: () {
-                    if (docs[i].analysis.isNotEmpty && docs[i].originalText.isNotEmpty) {
-                      _navigateTo(
-                        AnalysisScreen(
-                          originalText: docs[i].originalText,
-                          analysis: docs[i].analysis,
-                          documentTitle: docs[i].title,
-                          sourceType: docs[i].sourceType,
-                          fileData: docs[i].fileData,
-                          mimeType: docs[i].mimeType,
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 600;
+
+                    final docInfo = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: latestDoc.riskColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: latestDoc.riskColor.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(latestDoc.riskIcon, size: 12, color: latestDoc.riskColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    latestDoc.riskLabel,
+                                    style: GoogleFonts.inter(
+                                      color: latestDoc.riskColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 10.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${latestDoc.sourceType} • ${latestDoc.dateText}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Opening ${docs[i].title}...'),
-                          duration: const Duration(seconds: 1),
+                        const SizedBox(height: 10),
+                        Text(
+                          latestDoc.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          latestDoc.analysis.isNotEmpty
+                              ? '${latestDoc.analysis.length} clauses evaluated across tenancy & title compliance'
+                              : 'AI clause extraction and legal risk assessment complete',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                          ),
+                        ),
+                      ],
+                    );
+
+                    final actionButton = ElevatedButton.icon(
+                      onPressed: () {
+                        if (latestDoc.analysis.isNotEmpty && latestDoc.originalText.isNotEmpty) {
+                          _navigateTo(
+                            AnalysisScreen(
+                              originalText: latestDoc.originalText,
+                              analysis: latestDoc.analysis,
+                              documentTitle: latestDoc.title,
+                              sourceType: latestDoc.sourceType,
+                              fileData: latestDoc.fileData,
+                              mimeType: latestDoc.mimeType,
+                            ),
+                          );
+                        } else {
+                          _navigateTo(const RecentDocumentsScreen());
+                        }
+                      },
+                      icon: const Icon(Icons.visibility_outlined, size: 15),
+                      label: Text(
+                        loc.translate('home.viewFullAnalysis'),
+                        style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF244A78) : const Color(0xFF244A78),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          docInfo,
+                          const SizedBox(height: 14),
+                          actionButton,
+                        ],
                       );
                     }
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(child: docInfo),
+                        const SizedBox(width: 16),
+                        actionButton,
+                      ],
+                    );
                   },
                 ),
-              ],
-            ],
+              ),
           ],
         ),
       ),
@@ -1006,124 +1349,477 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   // ==========================================
-  // 4. LATEST LEGAL UPDATES SECTION (SHIMMERING GLASS)
+  // D. RISK BREAKDOWN CARD
   // ==========================================
-  Widget _buildLegalNewsSection(BuildContext context, bool isDark) {
-    final news = _legalNews;
+  Widget _buildRiskBreakdownCard(BuildContext context, bool isDark) {
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
 
+    final int total = _recentDocs.length;
+    final int highRisk = _recentDocs.where((d) => d.riskLabel.toLowerCase().contains('high')).length;
+    final int mediumRisk = _recentDocs.where((d) => d.riskLabel.toLowerCase().contains('medium') || d.riskLabel.toLowerCase().contains('caution')).length;
+    final int lowRisk = total - highRisk - mediumRisk > 0 ? (total - highRisk - mediumRisk) : 0;
+
+    final double highPct = total > 0 ? (highRisk / total) : 0.0;
+    final double medPct = total > 0 ? (mediumRisk / total) : 0.0;
+    final double lowPct = total > 0 ? (lowRisk / total) : (total == 0 ? 1.0 : 0.0);
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF38BDF8).withValues(alpha: 0.2),
-                  const Color(0xFF334356).withValues(alpha: 0.4),
-                  const Color(0xFF16263B).withValues(alpha: 0.2),
-                ]
-              : [
-                  const Color(0xFFE4DDD0),
-                  const Color(0xFF91ADCD).withValues(alpha: 0.2),
-                ],
+        color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(1.2),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF1B2F48).withValues(alpha: 0.94)
-              : const Color(0xFFFBF8EE).withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(20.8),
-        ),
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF91ADCD).withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF91ADCD).withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.feed_outlined,
-                          size: 18,
-                          color: Color(0xFF91ADCD),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          loc.translate('home.latestLegalUpdates'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                        blurRadius: 8,
+                child: const Icon(Icons.pie_chart_outline_rounded, color: Color(0xFFEF4444), size: 17),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc.translate('home.riskDistribution'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
-                          shape: BoxShape.circle,
+                    ),
+                    Text(
+                      loc.translate('home.riskDistributionSub'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // Multi-Segment Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 8,
+              width: double.infinity,
+              child: Row(
+                children: [
+                  if (highPct > 0)
+                    Flexible(
+                      flex: (highPct * 100).toInt(),
+                      child: Container(color: const Color(0xFFEF4444)),
+                    ),
+                  if (medPct > 0)
+                    Flexible(
+                      flex: (medPct * 100).toInt(),
+                      child: Container(color: const Color(0xFFF59E0B)),
+                    ),
+                  if (lowPct > 0)
+                    Flexible(
+                      flex: (lowPct * 100).toInt(),
+                      child: Container(color: const Color(0xFF10B981)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Legend
+          Wrap(
+            spacing: 14,
+            runSpacing: 8,
+            children: [
+              _buildRiskLegendItem(
+                color: const Color(0xFFEF4444),
+                label: loc.translate('home.highRiskLabel'),
+                count: highRisk,
+                isDark: isDark,
+              ),
+              _buildRiskLegendItem(
+                color: const Color(0xFFF59E0B),
+                label: loc.translate('home.mediumRiskLabel'),
+                count: mediumRisk,
+                isDark: isDark,
+              ),
+              _buildRiskLegendItem(
+                color: const Color(0xFF10B981),
+                label: loc.translate('home.lowRiskLabel'),
+                count: total > 0 ? lowRisk : 0,
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiskLegendItem({
+    required Color color,
+    required String label,
+    required int count,
+    required bool isDark,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$label ($count)',
+          style: GoogleFonts.inter(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // E. DUE DILIGENCE CHECKLIST PROGRESS CARD
+  // ==========================================
+  Widget _buildChecklistProgressCard(BuildContext context, bool isDark) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
+
+    int totalTasks = 0;
+    int completedTasks = 0;
+    String activeTitle = 'Property Purchase Diligence';
+    List<dynamic> pendingItems = [];
+
+    for (final cl in _checklists) {
+      if (cl['title'] != null && cl['title'].toString().isNotEmpty) {
+        activeTitle = cl['title'].toString();
+      }
+      final items = (cl['items'] as List<dynamic>?) ?? [];
+      totalTasks += items.length;
+      for (final it in items) {
+        if (it['isCompleted'] == true) {
+          completedTasks++;
+        } else if (pendingItems.length < 2) {
+          pendingItems.add(it);
+        }
+      }
+    }
+    final double checklistProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC5A85E).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.checklist_rounded, color: Color(0xFFC5A85E), size: 17),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.translate('home.dueDiligenceSection'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                            ),
+                          ),
+                          Text(
+                            activeTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${(checklistProgress * 100).toInt()}%',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFC5A85E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Container(
+              height: 6,
+              width: double.infinity,
+              color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: checklistProgress > 0 ? checklistProgress : 0.0,
+                child: Container(color: const Color(0xFFC5A85E)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Sample Upcoming Tasks
+          if (pendingItems.isNotEmpty) ...[
+            for (final it in pendingItems)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.radio_button_unchecked_rounded,
+                      size: 14,
+                      color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        (it['task'] ?? it['title'] ?? 'Title search & Encumbrance check').toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
                         ),
                       ),
-                      const SizedBox(width: 5),
+                    ),
+                  ],
+                ),
+              ),
+          ] else ...[
+            Text(
+              totalTasks > 0 ? 'All due diligence verification tasks completed' : 'No active transaction checklists',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+
+          // Action Button
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _navigateTo(const ChecklistsListScreen()),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+              label: Text(
+                loc.translate('home.openChecklist'),
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFC5A85E),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // F. RECENT ACTIVITY TIMELINE CARD
+  // ==========================================
+  Widget _buildRecentActivityCard(BuildContext context, bool isDark) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
+
+    final activities = <Map<String, dynamic>>[];
+
+    for (final d in _recentDocs.take(3)) {
+      activities.add({
+        'title': 'Document scanned: ${d.title}',
+        'time': d.dateText.replaceAll('Scanned ', ''),
+        'icon': Icons.description_outlined,
+        'color': const Color(0xFF38BDF8),
+      });
+    }
+
+    if (activities.isEmpty) {
+      activities.add({
+        'title': 'Workspace initialized',
+        'time': 'Recent',
+        'icon': Icons.check_circle_outline_rounded,
+        'color': const Color(0xFF10B981),
+      });
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF91ADCD).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.history_rounded, color: Color(0xFF91ADCD), size: 17),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc.translate('home.recentActivity'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                      ),
+                    ),
+                    Text(
+                      loc.translate('home.recentActivitySub'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          for (int i = 0; i < activities.length; i++) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: activities[i]['color'] as Color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    if (i < activities.length - 1)
+                      Container(
+                        width: 1.2,
+                        height: 24,
+                        color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        loc.translate('common.live'),
+                        activities[i]['title'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF10B981),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                        ),
+                      ),
+                      Text(
+                        activities[i]['time'] as String,
+                        style: GoogleFonts.inter(
                           fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                          color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
                         ),
                       ),
                     ],
@@ -1131,58 +1827,186 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            if (_isLoadingNews && _legalNews.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32.0),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF91ADCD)),
-                  ),
-                ),
-              )
-            else if (news.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Center(
-                  child: Text(
-                    loc.translate('home.noLegalUpdates'),
-                    style: GoogleFonts.inter(
-                      color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              )
-            else ...[
-              for (int i = 0; i < news.take(3).length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    color: isDark ? const Color(0xFF334356).withValues(alpha: 0.6) : const Color(0xFFE4DDD0),
-                    height: 1,
-                  ),
-                _HoverNewsRow(
-                  title: (news[i]['title'] ?? 'Legal Notice').toString(),
-                  source: (news[i]['source'] ?? 'Legal News').toString(),
-                  time: _formatRelativeTime(news[i]['pubDate']),
-                  isNew: i == 0 || (news[i]['isWarning'] == true),
-                  link: (news[i]['link'] ?? '').toString(),
-                  isDark: isDark,
-                ),
-              ],
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
 
   // ==========================================
-  // 5. PROMINENT RERA ADVISORY ALERT CARD (GOLD SHIMMER)
+  // G. LEGAL INTELLIGENCE & NEWS CARD
   // ==========================================
-  Widget _buildReraAlertCard(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildLegalUpdatesCard(BuildContext context, bool isDark) {
+    ref.watch(localeProvider);
+    final loc = ref.read(localeProvider.notifier);
+
+    final news = _legalNews;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.feed_outlined, color: Color(0xFF10B981), size: 17),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.translate('home.legalIntelligence'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                            ),
+                          ),
+                          Text(
+                            loc.translate('home.legalIntelligenceSub'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  loc.translate('common.live'),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF10B981),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          if (_isLoadingNews && _legalNews.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF91ADCD)),
+                ),
+              ),
+            )
+          else if (news.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                loc.translate('home.noLegalUpdates'),
+                style: GoogleFonts.inter(
+                  color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                  fontSize: 12,
+                ),
+              ),
+            )
+          else ...[
+            for (int i = 0; i < news.take(2).length; i++) ...[
+              InkWell(
+                onTap: () async {
+                  final link = (news[i]['link'] ?? '').toString();
+                  if (link.isNotEmpty) {
+                    final uri = Uri.parse(link);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (news[i]['title'] ?? 'Legal Notice').toString(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                            Text(
+                              '${news[i]['source'] ?? 'Legal News'} • ${_formatRelativeTime(news[i]['pubDate'])}',
+                              style: GoogleFonts.inter(
+                                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.open_in_new_rounded,
+                        size: 14,
+                        color: isDark ? const Color(0xFF91ADCD) : const Color(0xFF63748A),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // H. RERA STATUTORY AWARENESS CARD
+  // ==========================================
+  Widget _buildReraAwarenessCard(BuildContext context, bool isDark, bool isDesktop) {
     ref.watch(localeProvider);
     final loc = ref.read(localeProvider.notifier);
 
@@ -1192,139 +2016,141 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     );
 
     final String alertTitle = reraAlert != null
-        ? (reraAlert['title'] ?? 'RERA: The regulator that was supposed to protect homebuyers — but has it become part of the problem?')
-        : 'RERA: The regulator that was supposed to protect homebuyers — but has it become part of the problem?';
-
-    final String alertSource = reraAlert != null
-        ? (reraAlert['source'] ?? 'inventiva.co.in')
-        : 'inventiva.co.in';
-
-    final String alertDate = reraAlert != null
-        ? 'Latest: ${_formatRelativeTime(reraAlert['pubDate'])}'
-        : 'Latest: 26 Aug 2026';
+        ? (reraAlert['title'] ?? 'RERA: Promoter Escrow & Statutory Handover Compliance Under Section 18')
+        : 'RERA: Promoter Escrow & Statutory Handover Compliance Under Section 18';
 
     final String alertDesc = reraAlert != null
-        ? 'Regulatory update via $alertSource. Mandatory adherence required for real estate transactions, promoter disclosures, and escrow accounting.'
-        : 'Regulatory update via $alertSource. Mandatory adherence required for real estate transactions, promoter disclosures, and escrow accounting.';
+        ? 'Regulatory notice via ${reraAlert['source'] ?? 'inventiva.co.in'}. Mandatory promoter disclosures and statutory interest protections apply to all registered transactions.'
+        : 'Mandatory promoter disclosures and statutory interest protections apply to all registered transactions.';
 
     final String alertLink = reraAlert != null ? (reraAlert['link'] ?? '') : '';
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.45 : 0.35),
-            const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.25 : 0.15),
-            const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.15 : 0.1),
+            const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.35 : 0.25),
+            const Color(0xFFFFDF8C).withValues(alpha: isDark ? 0.2 : 0.12),
+            const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.12 : 0.08),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.14 : 0.06),
-            blurRadius: 28,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFC5A85E).withValues(alpha: isDark ? 0.1 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(1.3),
+      padding: const EdgeInsets.all(1.2),
       child: Container(
         decoration: BoxDecoration(
           color: isDark
               ? const Color(0xFF1B2F48).withValues(alpha: 0.95)
               : const Color(0xFFFBF8EE).withValues(alpha: 0.97),
-          borderRadius: BorderRadius.circular(20.7),
+          borderRadius: BorderRadius.circular(16.8),
         ),
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 26 : 18,
-          vertical: isDesktop ? 22 : 18,
+          horizontal: isDesktop ? 22 : 16,
+          vertical: isDesktop ? 18 : 16,
         ),
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 640;
+          builder: (context, reraConstraints) {
+            final isNarrow = reraConstraints.maxWidth < 620;
 
-            if (isMobile) {
+            if (isNarrow) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: const Color(0xFFC5A85E).withValues(alpha: 0.35),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.shield_outlined, size: 12, color: Color(0xFFC5A85E)),
-                            const SizedBox(width: 5),
-                            Text(
-                              loc.translate('home.reraAlert'),
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFC5A85E),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 10,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.shield_outlined,
+                          color: Color(0xFFC5A85E),
+                          size: 18,
                         ),
                       ),
-                      Text(
-                        alertDate,
-                        style: GoogleFonts.inter(
-                          color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          loc.translate('home.reraAlert'),
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFFC5A85E),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 9.5,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     alertTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                      fontSize: 14.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    alertDesc,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                      fontSize: 12,
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    alertDesc,
-                    style: GoogleFonts.inter(
-                      color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                      fontSize: 12.5,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  InkWell(
-                    onTap: () => _handleReraDetails(context, alertLink, alertTitle, alertDesc),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          loc.translate('common.viewDetails'),
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFFC5A85E),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton(
+                      onPressed: () => _handleReraDetails(context, alertLink, alertTitle, alertDesc),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: const Color(0xFFC5A85E).withValues(alpha: 0.6),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_rounded, color: Color(0xFFC5A85E), size: 14),
-                      ],
+                        foregroundColor: const Color(0xFFC5A85E),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            loc.translate('common.viewDetails'),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFC5A85E),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFFC5A85E)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1335,10 +2161,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC5A85E).withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: const Color(0xFFC5A85E).withValues(alpha: 0.35),
                     ),
@@ -1346,10 +2172,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   child: const Icon(
                     Icons.shield_outlined,
                     color: Color(0xFFC5A85E),
-                    size: 24,
+                    size: 22,
                   ),
                 ),
-                const SizedBox(width: 18),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1358,68 +2184,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
                               color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(0xFFC5A85E).withValues(alpha: 0.3),
-                              ),
+                              borderRadius: BorderRadius.circular(5),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.shield_outlined, size: 12, color: Color(0xFFC5A85E)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  loc.translate('home.reraAlert'),
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFFC5A85E),
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 10,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Flexible(
                             child: Text(
-                              alertDate,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              loc.translate('home.reraAlert'),
                               style: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFFC5A85E),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 9.5,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         alertTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                          fontSize: 15,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         alertDesc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                          fontSize: 12.5,
-                          height: 1.4,
+                          fontSize: 12,
+                          height: 1.35,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 OutlinedButton(
                   onPressed: () => _handleReraDetails(context, alertLink, alertTitle, alertDesc),
                   style: OutlinedButton.styleFrom(
@@ -1427,8 +2234,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       color: const Color(0xFFC5A85E).withValues(alpha: 0.6),
                     ),
                     foregroundColor: const Color(0xFFC5A85E),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1436,13 +2243,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       Text(
                         loc.translate('common.viewDetails'),
                         style: GoogleFonts.inter(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFFC5A85E),
                         ),
                       ),
-                      const SizedBox(width: 5),
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFFC5A85E)),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFFC5A85E)),
                     ],
                   ),
                 ),
@@ -1520,415 +2327,102 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       );
     }
   }
-
-  // ==========================================
-  // FLOATING AI ASSISTANT BUTTON
-  // ==========================================
-  Widget _buildFloatingAiButton(BuildContext context, bool isDark) {
-    return _FloatingLegalAiButton(
-      onTap: () => _navigateTo(const ChatScreen()),
-      isDark: isDark,
-    );
-  }
 }
 
 // ==========================================
-// CUSTOM ILLUSTRATION PAINTER (EDITORIAL LINE ART)
+// SIDEBAR NAVIGATION ITEM WIDGET
 // ==========================================
-class _LegalPropertyIllustrationPainter extends CustomPainter {
-  final Color accentBlue;
-  final Color accentGold;
-  final bool isDark;
-
-  _LegalPropertyIllustrationPainter({
-    required this.accentBlue,
-    required this.accentGold,
-    required this.isDark,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokePaint = Paint()
-      ..color = accentBlue.withValues(alpha: isDark ? 0.38 : 0.25)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final goldStroke = Paint()
-      ..color = accentGold.withValues(alpha: isDark ? 0.45 : 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final subtlePaint = Paint()
-      ..color = accentBlue.withValues(alpha: isDark ? 0.2 : 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    final fillPaint = Paint()
-      ..color = accentBlue.withValues(alpha: isDark ? 0.06 : 0.03)
-      ..style = PaintingStyle.fill;
-
-    // 1. Property / Building Outline (Left portion, x: 10 to 80)
-    final b1Rect = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(12, 32, 22, 48),
-      const Radius.circular(2),
-    );
-    canvas.drawRRect(b1Rect, fillPaint);
-    canvas.drawRRect(b1Rect, strokePaint);
-    for (double y = 40; y <= 70; y += 10) {
-      canvas.drawLine(Offset(18, y), Offset(22, y), subtlePaint);
-      canvas.drawLine(Offset(25, y), Offset(29, y), subtlePaint);
-    }
-
-    final b2Path = Path()
-      ..moveTo(34, 80)
-      ..lineTo(34, 24)
-      ..lineTo(48, 12)
-      ..lineTo(62, 24)
-      ..lineTo(62, 80);
-    canvas.drawPath(b2Path, fillPaint);
-    canvas.drawPath(b2Path, strokePaint);
-    canvas.drawLine(const Offset(48, 12), const Offset(48, 80), subtlePaint);
-
-    final b3Path = Path()
-      ..moveTo(62, 80)
-      ..lineTo(62, 42)
-      ..lineTo(76, 42)
-      ..lineTo(76, 80);
-    canvas.drawPath(b3Path, fillPaint);
-    canvas.drawPath(b3Path, strokePaint);
-    canvas.drawLine(const Offset(8, 80), const Offset(82, 80), subtlePaint);
-
-    // 2. Scale of Justice (Center portion, x: 88 to 134)
-    canvas.drawLine(const Offset(108, 22), const Offset(108, 72), strokePaint);
-    canvas.drawLine(const Offset(98, 72), const Offset(118, 72), strokePaint);
-    canvas.drawCircle(const Offset(108, 20), 2.5, goldStroke);
-    canvas.drawLine(const Offset(90, 28), const Offset(126, 28), goldStroke);
-
-    final leftStrings = Path()
-      ..moveTo(90, 28)
-      ..lineTo(83, 44)
-      ..moveTo(90, 28)
-      ..lineTo(97, 44);
-    canvas.drawPath(leftStrings, subtlePaint);
-    final leftPan = Path()
-      ..moveTo(81, 44)
-      ..quadraticBezierTo(90, 49, 99, 44);
-    canvas.drawPath(leftPan, strokePaint);
-
-    final rightStrings = Path()
-      ..moveTo(126, 28)
-      ..lineTo(119, 44)
-      ..moveTo(126, 28)
-      ..lineTo(133, 44);
-    canvas.drawPath(rightStrings, subtlePaint);
-    final rightPan = Path()
-      ..moveTo(117, 44)
-      ..quadraticBezierTo(126, 49, 135, 44);
-    canvas.drawPath(rightPan, strokePaint);
-
-    // 3. Legal Document & Verified Shield (Right portion, x: 140 to 200)
-    final docPath = Path()
-      ..moveTo(146, 76)
-      ..lineTo(146, 18)
-      ..lineTo(170, 18)
-      ..lineTo(182, 30)
-      ..lineTo(182, 76)
-      ..close();
-    canvas.drawPath(docPath, fillPaint);
-    canvas.drawPath(docPath, strokePaint);
-
-    final foldPath = Path()
-      ..moveTo(170, 18)
-      ..lineTo(170, 30)
-      ..lineTo(182, 30);
-    canvas.drawPath(foldPath, strokePaint);
-
-    canvas.drawLine(const Offset(152, 32), const Offset(166, 32), subtlePaint);
-    canvas.drawLine(const Offset(152, 40), const Offset(176, 40), subtlePaint);
-    canvas.drawLine(const Offset(152, 48), const Offset(176, 48), subtlePaint);
-    canvas.drawLine(const Offset(152, 56), const Offset(168, 56), subtlePaint);
-
-    // AI Checkmark circle badge
-    canvas.drawCircle(const Offset(172, 64), 5.5, goldStroke);
-    final checkPath = Path()
-      ..moveTo(169.5, 64)
-      ..lineTo(171.5, 66)
-      ..lineTo(175, 62);
-    canvas.drawPath(checkPath, goldStroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant _LegalPropertyIllustrationPainter oldDelegate) {
-    return oldDelegate.accentBlue != accentBlue ||
-        oldDelegate.accentGold != accentGold ||
-        oldDelegate.isDark != isDark;
-  }
-}
-
-// ==========================================
-// QUICK ACTION CARD DATA & SHIMMERING GLASS COMPONENT
-// ==========================================
-class _QuickActionItem {
-  final String category;
-  final String title;
-  final String description;
-  final String ctaText;
+class _SidebarNavItem extends StatefulWidget {
   final IconData icon;
-  final Color accentColor;
-  final VoidCallback onTap;
-  final String? badgeText;
-  final bool showProgress;
-  final double progress;
-
-  _QuickActionItem({
-    required this.category,
-    required this.title,
-    required this.description,
-    required this.ctaText,
-    required this.icon,
-    required this.accentColor,
-    required this.onTap,
-    this.badgeText,
-    this.showProgress = false,
-    this.progress = 0.0,
-  });
-}
-
-class _QuickActionCard extends StatefulWidget {
-  final _QuickActionItem item;
+  final String label;
+  final bool isActive;
   final bool isDark;
+  final VoidCallback onTap;
 
-  const _QuickActionCard({
-    required this.item,
+  const _SidebarNavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
     required this.isDark,
+    required this.onTap,
   });
 
   @override
-  State<_QuickActionCard> createState() => _QuickActionCardState();
+  State<_SidebarNavItem> createState() => _SidebarNavItemState();
 }
 
-class _QuickActionCardState extends State<_QuickActionCard> {
+class _SidebarNavItemState extends State<_SidebarNavItem> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
-    final item = widget.item;
+    final isActive = widget.isActive;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: item.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
-          padding: const EdgeInsets.all(1.3), // Gradient border padding
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _isHovered
-                  ? [
-                      item.accentColor.withValues(alpha: 0.85),
-                      const Color(0xFFC5A85E).withValues(alpha: 0.65),
-                      item.accentColor.withValues(alpha: 0.3),
-                    ]
-                  : (isDark
-                      ? [
-                          item.accentColor.withValues(alpha: 0.22),
-                          const Color(0xFF334356).withValues(alpha: 0.45),
-                          const Color(0xFF16263B).withValues(alpha: 0.2),
-                        ]
-                      : [
-                          const Color(0xFFE4DDD0),
-                          item.accentColor.withValues(alpha: 0.25),
-                          const Color(0xFFE4DDD0),
-                        ]),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: item.accentColor.withValues(alpha: _isHovered ? (isDark ? 0.28 : 0.12) : 0.0),
-                blurRadius: _isHovered ? 24 : 0,
-                spreadRadius: _isHovered ? 1 : 0,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? (_isHovered ? 0.4 : 0.22) : (_isHovered ? 0.08 : 0.03)),
-                blurRadius: _isHovered ? 18 : 8,
-                offset: Offset(0, _isHovered ? 6 : 3),
-              ),
-            ],
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(22),
+    Color itemColor;
+    if (isActive) {
+      itemColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF244A78);
+    } else if (_isHovered) {
+      itemColor = isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78);
+    } else {
+      itemColor = isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A);
+    }
+
+    Color bgColor;
+    if (isActive) {
+      bgColor = isDark
+          ? const Color(0xFF38BDF8).withValues(alpha: 0.14)
+          : const Color(0xFF244A78).withValues(alpha: 0.1);
+    } else if (_isHovered) {
+      bgColor = isDark
+          ? const Color(0xFF91ADCD).withValues(alpha: 0.1)
+          : const Color(0xFFE4DDD0).withValues(alpha: 0.4);
+    } else {
+      bgColor = Colors.transparent;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: isDark
-                  ? (_isHovered ? const Color(0xFF1E3552).withValues(alpha: 0.96) : const Color(0xFF182A40).withValues(alpha: 0.94))
-                  : (_isHovered ? const Color(0xFFFAF6EB).withValues(alpha: 0.98) : const Color(0xFFFDFBF7).withValues(alpha: 0.96)),
-              borderRadius: BorderRadius.circular(18.7),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Row: Icon Container + Category Tag / Badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        AnimatedScale(
-                          scale: _isHovered ? 1.08 : 1.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: item.accentColor.withValues(alpha: _isHovered ? 0.22 : 0.12),
-                              borderRadius: BorderRadius.circular(11),
-                              border: Border.all(
-                                color: item.accentColor.withValues(alpha: _isHovered ? 0.55 : 0.25),
-                              ),
-                              boxShadow: [
-                                if (_isHovered)
-                                  BoxShadow(
-                                    color: item.accentColor.withValues(alpha: 0.35),
-                                    blurRadius: 12,
-                                  ),
-                              ],
-                            ),
-                            child: Icon(item.icon, color: item.accentColor, size: 20),
-                          ),
-                        ),
-                        if (item.badgeText != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: item.accentColor.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: item.accentColor.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 5,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    color: item.accentColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  item.badgeText!,
-                                  style: GoogleFonts.inter(
-                                    color: item.accentColor,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Text(
-                            item.category,
-                            style: GoogleFonts.inter(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: item.accentColor.withValues(alpha: 0.9),
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Title
-                    Text(
-                      item.title,
-                      style: GoogleFonts.inter(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-
-                    // Description
-                    SizedBox(
-                      height: 40,
-                      child: Text(
-                        item.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          height: 1.35,
-                          color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                        ),
-                      ),
-                    ),
-
-                    // Optional Progress Bar for checklist
-                    if (item.showProgress) ...[
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: Container(
-                          height: 3.5,
-                          width: double.infinity,
-                          color: item.accentColor.withValues(alpha: 0.15),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: item.progress > 0 ? item.progress : 0.0,
-                            child: Container(
-                              color: item.accentColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+              color: bgColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border(
+                left: BorderSide(
+                  color: isActive
+                      ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF244A78))
+                      : Colors.transparent,
+                  width: 3,
                 ),
-                const SizedBox(height: 14),
-
-                // Bottom CTA Row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.ctaText.replaceAll('→', '').trim(),
-                      style: GoogleFonts.inter(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: item.accentColor,
-                      ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 18,
+                  color: itemColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      color: itemColor,
                     ),
-                    const SizedBox(width: 4),
-                    AnimatedSlide(
-                      offset: _isHovered ? const Offset(0.3, 0) : Offset.zero,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        color: item.accentColor,
-                        size: 14,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -1940,7 +2434,122 @@ class _QuickActionCardState extends State<_QuickActionCard> {
 }
 
 // ==========================================
-// RECENT DOCUMENT MODEL & HOVER ROW
+// WORKSPACE METRIC DATA & CARD
+// ==========================================
+class _WorkspaceMetricData {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String subtitle;
+  final Color accentColor;
+
+  _WorkspaceMetricData({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.accentColor,
+  });
+}
+
+class _WorkspaceMetricCard extends StatelessWidget {
+  final _WorkspaceMetricData data;
+  final bool isDark;
+
+  const _WorkspaceMetricCard({
+    required this.data,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final item = data;
+
+    return SizedBox(
+      height: 114,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1B2F48) : const Color(0xFFFBF8EE),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(item.icon, color: item.accentColor, size: 16),
+              ),
+              Text(
+                item.value,
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  height: 1.0,
+                  color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                  color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                item.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                  color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ));
+  }
+}
+
+// ==========================================
+// RECENT DOCUMENT MODEL
 // ==========================================
 class _RecentDocItem {
   final String id;
@@ -1955,6 +2564,7 @@ class _RecentDocItem {
   final String sourceType;
   final String? fileData;
   final String? mimeType;
+  final String analysisStatus;
 
   _RecentDocItem({
     required this.id,
@@ -1969,6 +2579,7 @@ class _RecentDocItem {
     this.sourceType = 'PDF Document',
     this.fileData,
     this.mimeType,
+    this.analysisStatus = 'completed',
   });
 
   factory _RecentDocItem.fromJson(Map<String, dynamic> json) {
@@ -1982,6 +2593,7 @@ class _RecentDocItem {
     final sourceType = (json['sourceType'] as String?) ?? 'PDF Document';
     final fileData = json['fileData'] as String?;
     final mimeType = json['mimeType'] as String?;
+    final analysisStatus = (json['analysisStatus'] as String?) ?? 'completed';
 
     Color riskColor = const Color(0xFF10B981);
     IconData riskIcon = Icons.check_circle_outline_rounded;
@@ -2007,6 +2619,7 @@ class _RecentDocItem {
       sourceType: sourceType,
       fileData: fileData,
       mimeType: mimeType,
+      analysisStatus: analysisStatus,
     );
   }
 }
@@ -2050,355 +2663,98 @@ String _formatRelativeTime(dynamic dateValue) {
   return dateValue.toString();
 }
 
-class _HoverDocumentRow extends StatefulWidget {
-  final _RecentDocItem doc;
+// ==========================================
+// CUSTOM ILLUSTRATION PAINTER
+// ==========================================
+class _LegalPropertyIllustrationPainter extends CustomPainter {
+  final Color accentBlue;
+  final Color accentGold;
   final bool isDark;
-  final VoidCallback onTap;
 
-  const _HoverDocumentRow({
-    required this.doc,
+  _LegalPropertyIllustrationPainter({
+    required this.accentBlue,
+    required this.accentGold,
     required this.isDark,
-    required this.onTap,
   });
 
   @override
-  State<_HoverDocumentRow> createState() => _HoverDocumentRowState();
-}
+  void paint(Canvas canvas, Size size) {
+    final strokePaint = Paint()
+      ..color = accentBlue.withValues(alpha: isDark ? 0.38 : 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-class _HoverDocumentRowState extends State<_HoverDocumentRow> {
-  bool _isHovered = false;
+    final goldStroke = Paint()
+      ..color = accentGold.withValues(alpha: isDark ? 0.45 : 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = widget.isDark;
+    final subtlePaint = Paint()
+      ..color = accentBlue.withValues(alpha: isDark ? 0.2 : 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
 
-    IconData formatIcon = Icons.article_rounded;
-    Color formatColor = const Color(0xFF91ADCD);
+    final fillPaint = Paint()
+      ..color = accentBlue.withValues(alpha: isDark ? 0.06 : 0.03)
+      ..style = PaintingStyle.fill;
 
-    final sLower = widget.doc.sourceType.toLowerCase();
-    if (sLower.contains('photo') || sLower.contains('image')) {
-      formatIcon = Icons.image_rounded;
-      formatColor = const Color(0xFFC5A85E);
-    } else if (sLower.contains('text')) {
-      formatIcon = Icons.notes_rounded;
-      formatColor = const Color(0xFF38BDF8);
-    } else if (sLower.contains('pdf')) {
-      formatIcon = Icons.picture_as_pdf_rounded;
-      formatColor = const Color(0xFFEF4444);
+    // Building Outline
+    final b1Rect = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(12, 32, 22, 48),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(b1Rect, fillPaint);
+    canvas.drawRRect(b1Rect, strokePaint);
+    for (double y = 40; y <= 70; y += 10) {
+      canvas.drawLine(Offset(18, y), Offset(22, y), subtlePaint);
+      canvas.drawLine(Offset(25, y), Offset(29, y), subtlePaint);
     }
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: _isHovered
-                ? (isDark ? const Color(0xFF223A58) : const Color(0xFFF4EFE0))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: formatColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(formatIcon, color: formatColor, size: 19),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.doc.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${widget.doc.sourceType} • ${widget.doc.dateText} • ${widget.doc.docSize}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
+    final b2Path = Path()
+      ..moveTo(34, 80)
+      ..lineTo(34, 24)
+      ..lineTo(48, 12)
+      ..lineTo(62, 24)
+      ..lineTo(62, 80);
+    canvas.drawPath(b2Path, fillPaint);
+    canvas.drawPath(b2Path, strokePaint);
 
-              // Status Badge (Transparent bg + fine colored border)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: widget.doc.riskColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: widget.doc.riskColor.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(widget.doc.riskIcon, size: 12, color: widget.doc.riskColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.doc.riskLabel,
-                      style: GoogleFonts.inter(
-                        color: widget.doc.riskColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
+    final b3Path = Path()
+      ..moveTo(62, 80)
+      ..lineTo(62, 42)
+      ..lineTo(76, 42)
+      ..lineTo(76, 80);
+    canvas.drawPath(b3Path, fillPaint);
+    canvas.drawPath(b3Path, strokePaint);
 
-              AnimatedSlide(
-                offset: _isHovered ? const Offset(0.2, 0) : Offset.zero,
-                duration: const Duration(milliseconds: 180),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: _isHovered
-                      ? const Color(0xFF91ADCD)
-                      : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
-                  size: 19,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    // Scale of Justice
+    canvas.drawLine(const Offset(108, 22), const Offset(108, 72), strokePaint);
+    canvas.drawLine(const Offset(98, 72), const Offset(118, 72), strokePaint);
+    canvas.drawCircle(const Offset(108, 20), 2.5, goldStroke);
+    canvas.drawLine(const Offset(90, 28), const Offset(126, 28), goldStroke);
+
+    // Verified Document
+    final docPath = Path()
+      ..moveTo(146, 76)
+      ..lineTo(146, 18)
+      ..lineTo(170, 18)
+      ..lineTo(182, 30)
+      ..lineTo(182, 76)
+      ..close();
+    canvas.drawPath(docPath, fillPaint);
+    canvas.drawPath(docPath, strokePaint);
+
+    canvas.drawCircle(const Offset(172, 64), 5.5, goldStroke);
   }
-}
-
-// ==========================================
-// LEGAL NEWS HOVER ROW
-// ==========================================
-class _HoverNewsRow extends StatefulWidget {
-  final String title;
-  final String source;
-  final String time;
-  final bool isNew;
-  final String link;
-  final bool isDark;
-
-  const _HoverNewsRow({
-    required this.title,
-    required this.source,
-    required this.time,
-    required this.isNew,
-    required this.link,
-    required this.isDark,
-  });
 
   @override
-  State<_HoverNewsRow> createState() => _HoverNewsRowState();
-}
-
-class _HoverNewsRowState extends State<_HoverNewsRow> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = widget.isDark;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: () async {
-          if (widget.link.isNotEmpty) {
-            final Uri url = Uri.parse(widget.link);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url, mode: LaunchMode.externalApplication);
-            }
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: _isHovered
-                ? (isDark ? const Color(0xFF223A58) : const Color(0xFFF4EFE0))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF91ADCD).withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.feed_outlined, color: Color(0xFF91ADCD), size: 18),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFE8E1D0) : const Color(0xFF244A78),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${widget.source} • ${widget.time}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFA5B4C7) : const Color(0xFF63748A),
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.isNew) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: const Color(0xFFC5A85E).withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    'NEW',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFC5A85E),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(width: 6),
-              AnimatedSlide(
-                offset: _isHovered ? const Offset(0.2, 0) : Offset.zero,
-                duration: const Duration(milliseconds: 180),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  size: 19,
-                  color: _isHovered
-                      ? const Color(0xFF91ADCD)
-                      : (isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// FLOATING AI ASSISTANT BUTTON
-// ==========================================
-class _FloatingLegalAiButton extends ConsumerStatefulWidget {
-  final VoidCallback onTap;
-  final bool isDark;
-
-  const _FloatingLegalAiButton({
-    required this.onTap,
-    required this.isDark,
-  });
-
-  @override
-  ConsumerState<_FloatingLegalAiButton> createState() => _FloatingLegalAiButtonState();
-}
-
-class _FloatingLegalAiButtonState extends ConsumerState<_FloatingLegalAiButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    ref.watch(localeProvider);
-    final loc = ref.read(localeProvider.notifier);
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF244A78), Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: const Color(0xFF38BDF8).withValues(alpha: _isHovered ? 0.7 : 0.4),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1D4ED8).withValues(alpha: _isHovered ? 0.45 : 0.3),
-                blurRadius: _isHovered ? 16 : 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 17),
-              const SizedBox(width: 8),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                child: Text(
-                  _isHovered ? loc.translate('home.needLegalHelp') : loc.translate('home.askLegalAi'),
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  bool shouldRepaint(covariant _LegalPropertyIllustrationPainter oldDelegate) {
+    return oldDelegate.accentBlue != accentBlue ||
+        oldDelegate.accentGold != accentGold ||
+        oldDelegate.isDark != isDark;
   }
 }

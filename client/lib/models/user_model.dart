@@ -46,4 +46,24 @@ class UserModel {
     if (phone != null && phone!.isNotEmpty) return phone!;
     return 'Registered User';
   }
+
+  UserModel copyWith({
+    String? userId,
+    String? fullName,
+    String? email,
+    String? phone,
+    DateTime? createdAt,
+    DateTime? lastLogin,
+    String? profilePhoto,
+  }) {
+    return UserModel(
+      userId: userId ?? this.userId,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      createdAt: createdAt ?? this.createdAt,
+      lastLogin: lastLogin ?? this.lastLogin,
+      profilePhoto: profilePhoto ?? this.profilePhoto,
+    );
+  }
 }

@@ -136,6 +136,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void updateUserName(String newName) {
+    if (state.user != null && newName.trim().isNotEmpty) {
+      final updatedUser = state.user!.copyWith(fullName: newName.trim());
+      state = state.copyWith(user: updatedUser);
+    }
+  }
+
   Future<void> logout() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
