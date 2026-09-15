@@ -4,6 +4,8 @@ import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../screens/welcome_screen.dart';
+import '../screens/privacy_policy_screen.dart';
+import '../screens/terms_of_use_screen.dart';
 
 class UserProfileButton extends ConsumerStatefulWidget {
   const UserProfileButton({super.key});
@@ -290,6 +292,75 @@ void showSettingsDialog(BuildContext context, WidgetRef ref) {
                                 ),
                               ),
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Legal & Privacy Section
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        currentLanguage == AppLanguage.hindi ? 'कानूनी और गोपनीयता' : 'Legal & Privacy',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF162B43).withValues(alpha: 0.6) : const Color(0xFFE4DDD0).withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                            leading: Icon(Icons.shield_outlined, size: 19, color: colorScheme.primary),
+                            title: Text(
+                              currentLanguage == AppLanguage.hindi ? 'गोपनीयता नीति' : 'Privacy Policy',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 13, color: colorScheme.onSurfaceVariant),
+                            onTap: () {
+                              Navigator.pop(dialogContext);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                              );
+                            },
+                          ),
+                          Divider(height: 1, color: isDark ? const Color(0xFF334356) : const Color(0xFFE4DDD0)),
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                            leading: Icon(Icons.description_outlined, size: 19, color: colorScheme.primary),
+                            title: Text(
+                              currentLanguage == AppLanguage.hindi ? 'उपयोग की शर्तें' : 'Terms of Use',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 13, color: colorScheme.onSurfaceVariant),
+                            onTap: () {
+                              Navigator.pop(dialogContext);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const TermsOfUseScreen()),
+                              );
+                            },
                           ),
                         ],
                       ),

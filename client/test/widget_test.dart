@@ -9,6 +9,8 @@ import 'package:legal_scanner/screens/welcome_screen.dart';
 import 'package:legal_scanner/screens/recent_documents_screen.dart';
 import 'package:legal_scanner/screens/checklists_list_screen.dart';
 import 'package:legal_scanner/screens/checklist_screen.dart';
+import 'package:legal_scanner/screens/privacy_policy_screen.dart';
+import 'package:legal_scanner/screens/terms_of_use_screen.dart';
 
 void main() {
   testWidgets('RecentDocumentsScreen renders with summary stats, search, and documents', (WidgetTester tester) async {
@@ -314,6 +316,48 @@ void main() {
     await tester.pump();
     expect(find.byType(ChecklistScreen), findsOneWidget);
     expect(find.text('Resale Apartment Due Diligence'), findsOneWidget);
+  });
+
+  testWidgets('PrivacyPolicyScreen renders all key legal sections and disclaimer', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: PrivacyPolicyScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.text('Last Updated: 15 September 2026'), findsOneWidget);
+    expect(find.text('Introduction'), findsOneWidget);
+    expect(find.text('Information We Collect'), findsOneWidget);
+    expect(find.text('Legal Disclaimer & Non-Advocate Notice'), findsOneWidget);
+  });
+
+  testWidgets('TermsOfUseScreen renders terms and conditions', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: TermsOfUseScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.byType(TermsOfUseScreen), findsOneWidget);
+    expect(find.text('Terms of Use'), findsOneWidget);
+    expect(find.text('Last Updated: 15 September 2026'), findsOneWidget);
+    expect(find.text('Acceptance of Terms'), findsOneWidget);
   });
 }
 

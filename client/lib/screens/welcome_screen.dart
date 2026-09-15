@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_of_use_screen.dart';
 
 
 class WelcomeScreen extends StatefulWidget {
@@ -1199,7 +1201,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   Widget _buildFooter(bool isDark) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
         color: (isDark ? const Color(0xFF020617) : const Color(0xFFF1F5F9)),
         border: Border(
@@ -1256,9 +1258,125 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
 
+              // Bottom Brand & Navigation Footer
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 700;
+                  final brandInfo = Column(
+                    crossAxisAlignment: isNarrow ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC5A85E).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.shield_outlined, color: Color(0xFFC5A85E), size: 16),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'LawBuddy',
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Understand your property documents before you sign.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                        textAlign: isNarrow ? TextAlign.center : TextAlign.start,
+                      ),
+                    ],
+                  );
 
+                  final navLinks = Wrap(
+                    spacing: 20,
+                    runSpacing: 10,
+                    alignment: isNarrow ? WrapAlignment.center : WrapAlignment.end,
+                    children: [
+                      _buildFooterLink('Features', isDark, () {
+                        if (_featuresKey.currentContext != null) {
+                          Scrollable.ensureVisible(
+                            _featuresKey.currentContext!,
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      }),
+                      _buildFooterLink('How It Works', isDark, () {
+                        if (_howItWorksKey.currentContext != null) {
+                          Scrollable.ensureVisible(
+                            _howItWorksKey.currentContext!,
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      }),
+                      _buildFooterLink('Privacy Policy', isDark, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                        );
+                      }),
+                      _buildFooterLink('Terms of Use', isDark, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const TermsOfUseScreen()),
+                        );
+                      }),
+                    ],
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      children: [
+                        brandInfo,
+                        const SizedBox(height: 16),
+                        navLinks,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: brandInfo),
+                      const SizedBox(width: 24),
+                      navLinks,
+                    ],
+                  );
+                },
+              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterLink(String label, bool isDark, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
           ),
         ),
       ),
